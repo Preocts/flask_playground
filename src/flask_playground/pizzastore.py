@@ -51,13 +51,18 @@ class PizzaStore:
         self._connection = Connection(self.db_file)
         self._build_table()
 
+    def connection_factory(self) -> Generator[PizzaStore, None, None]:
+        """Used by svcs to handle connection, I guess?"""
+        with self as store:
+            yield store
+
     def disconnect(self) -> None:
         """Disconnects the databse."""
         if self._connection:
             self._connection.close()
             self._connection = None
 
-    def __enter__(self) -> Generator[PizzaStore, None, None]:
+    def __enter__(self) -> PizzaStore:
         try:
             self.connect()
         except DatabaseError:
@@ -66,9 +71,10 @@ class PizzaStore:
         if not self._connection:
             raise DatabaseError("Failed to establish connection to database.")
 
-        yield self
+        return self
 
-    def __exit__(self) -> None:
+    # TODO: What are the annotations expected here?
+    def __exit__(self, type_, value, traceback) -> None:  # type: ignore
         self.disconnect()
 
     def _build_table(self) -> None:
