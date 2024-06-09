@@ -114,8 +114,9 @@ class PizzaStore:
             (o.order_id, o.date, o.time, o.name, o.size, o.style, o.price)
             for o in orders
         )
-        with closing(self.connection.cursor()) as cursor:
-            cursor.executemany(sql, values)
+        with self._write_lock:
+            with closing(self.connection.cursor()) as cursor:
+                cursor.executemany(sql, values)
 
         self.connection.commit()
 
