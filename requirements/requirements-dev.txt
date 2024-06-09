@@ -9,7 +9,9 @@ black==24.4.2
 cfgv==3.4.0
     # via pre-commit
 click==8.1.7
-    # via black
+    # via
+    #   -c requirements/requirements.txt
+    #   black
 distlib==0.3.8
     # via virtualenv
 filelock==3.14.0
