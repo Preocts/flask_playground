@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import csv
 import dataclasses
-from collections.abc import Generator
 from collections.abc import Iterable
 from contextlib import closing
 from sqlite3 import Connection
@@ -51,11 +50,6 @@ class PizzaStore:
         self._connection = Connection(self.db_file)
         self._build_table()
 
-    def connection_factory(self) -> Generator[PizzaStore, None, None]:
-        """Used by svcs to handle connection, I guess?"""
-        with self as store:
-            yield store
-
     def disconnect(self) -> None:
         """Disconnects the databse."""
         if self._connection:
@@ -67,9 +61,6 @@ class PizzaStore:
             self.connect()
         except DatabaseError:
             pass
-
-        if not self._connection:
-            raise DatabaseError("Failed to establish connection to database.")
 
         return self
 
