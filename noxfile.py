@@ -12,7 +12,7 @@ MODULE_NAME = "flask_playground"
 TESTS_PATH = "tests"
 COVERAGE_FAIL_UNDER = 50
 DEFAULT_PYTHON_VERSION = "3.11"
-PYTHON_MATRIX = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+PYTHON_MATRIX = ["3.11", "3.12"]
 VENV_PATH = "venv"
 REQUIREMENT_IN_FILES = [
     pathlib.Path("requirements/requirements.in"),
