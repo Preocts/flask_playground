@@ -6,3 +6,6 @@
 [![Python tests](https://github.com/Preocts/flask_playground/actions/workflows/python-tests.yml/badge.svg?branch=main)](https://github.com/Preocts/flask_playground/actions/workflows/python-tests.yml)
 
 # flask_playground
+
+
+Pizza datasource: [download](https://www.kaggle.com/datasets/mexwell/pizza-sales)
