@@ -77,6 +77,11 @@ class PizzaStore:
     def __exit__(self, type_, value, traceback) -> None:  # type: ignore
         self.disconnect()
 
+    def health_check(self) -> None:
+        """Run check. Fails if raises."""
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute("SELECT 1 FROM sales")
+
     def _build_table(self) -> None:
         """Build the table if needed."""
         sql = """\
