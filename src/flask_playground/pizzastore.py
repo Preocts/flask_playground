@@ -69,9 +69,13 @@ class PizzaStore:
         self.disconnect()
 
     def health_check(self) -> None:
-        """Run check. Fails if raises."""
-        with closing(self.connection.cursor()) as cursor:
-            cursor.execute("SELECT 1 FROM sales")
+        """Run check. Raises ValueError on failure."""
+        try:
+            with closing(self.connection.cursor()) as cursor:
+                cursor.execute("SELECT 1 FROM sales")
+
+        except Exception as err:
+            raise ValueError("Health check failed") from err
 
     def _build_table(self) -> None:
         """Build the table if needed."""
