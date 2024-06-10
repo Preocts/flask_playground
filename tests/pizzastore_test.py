@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import threading
 from collections.abc import Generator
 from sqlite3 import DatabaseError
 
@@ -83,3 +85,49 @@ def test_save_multiple_orders(store: PizzaStore) -> None:
     results = conn.execute("SELECT COUNT(*) FROM sales")
 
     assert results.fetchone() == (10_000,)
+
+
+def _writer(
+    thread: int,
+    rows_to_write: int,
+    flag: threading.Event,
+    database_file: str,
+) -> None:
+    pizza_store = PizzaStore(database_file)
+    flag.wait()
+    for idx in range(rows_to_write):
+        order_id = f"{idx}-{thread}-mock"
+        order = Order(order_id, "mock", "mock", "mock", "mock", "mock", "mock")
+        with pizza_store:
+            pizza_store.save_order(order)
+
+
+def test_writing_lock_on_database(tmpdir) -> None:
+    number_of_threads = 50
+    rows_to_write = 10
+    tempfile = tmpdir.join("test.db")
+    store = PizzaStore(tempfile)
+
+    threads = []
+    start_flag = threading.Event()
+
+    try:
+        for thread_number in range(number_of_threads):
+            args = (thread_number, rows_to_write, start_flag, tempfile)
+            thread = threading.Thread(target=_writer, args=args)
+            threads.append(thread)
+            thread.start()
+
+        start_flag.set()
+
+        for thread in threads:
+            thread.join()
+
+        with store:
+            results = store.connection.execute("SELECT COUNT(*) FROM sales")
+            count = results.fetchone()[0]
+
+        assert count == number_of_threads * rows_to_write
+
+    finally:
+        os.remove(tempfile)

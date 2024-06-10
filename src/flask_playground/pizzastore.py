@@ -7,6 +7,7 @@ from contextlib import closing
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from threading import Lock
+from traceback import TracebackException
 
 _STORE_FILENAME = "pizza.sqlite3"
 
@@ -25,10 +26,12 @@ class Order:
 class PizzaStore:
     """A datastore for pizza sales using an SQLite3 database."""
 
+    _table_built = False
+    _write_lock = Lock()
+
     def __init__(self, db_file: str = _STORE_FILENAME) -> None:
         """Initialize the datastore object."""
         self.db_file = db_file
-        self._write_lock = Lock()
         self._connection: Connection | None = None
 
     @property
@@ -47,7 +50,7 @@ class PizzaStore:
         if self._connection:
             raise DatabaseError("Connection is already opened.")
 
-        self._connection = Connection(self.db_file)
+        self._connection = Connection(self.db_file, check_same_thread=False)
         self._build_table()
 
     def disconnect(self) -> None:
@@ -64,8 +67,12 @@ class PizzaStore:
 
         return self
 
-    # TODO: What are the annotations expected here?
-    def __exit__(self, type_, value, traceback) -> None:  # type: ignore
+    def __exit__(
+        self,
+        type_: type,
+        value: Exception,
+        traceback: TracebackException,
+    ) -> None:
         self.disconnect()
 
     def health_check(self) -> None:
@@ -79,6 +86,9 @@ class PizzaStore:
 
     def _build_table(self) -> None:
         """Build the table if needed."""
+        if self._table_built:
+            return None
+
         sql = """\
             CREATE TABLE IF NOT EXISTS sales
             (
@@ -91,8 +101,10 @@ class PizzaStore:
                 price STRING
             )"""
 
-        self.connection.execute(sql)
-        self.connection.commit()
+        with self._write_lock:
+            self.connection.execute(sql)
+            self.connection.commit()
+            self._table_built = True
 
     def save_orders(self, orders: Iterable[Order]) -> None:
         """Save multiple orders to the table."""
@@ -118,7 +130,7 @@ class PizzaStore:
             with closing(self.connection.cursor()) as cursor:
                 cursor.executemany(sql, values)
 
-        self.connection.commit()
+            self.connection.commit()
 
     def save_order(self, order: Order) -> None:
         """Save an order to the table."""
