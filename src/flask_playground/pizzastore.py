@@ -9,6 +9,7 @@ from sqlite3 import DatabaseError
 from threading import Lock
 
 _STORE_FILENAME = "pizza.sqlite3"
+_SALES_CSV = "pizza.csv"
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -48,7 +49,6 @@ class PizzaStore:
             raise DatabaseError("Connection is already opened.")
 
         self._connection = Connection(self.db_file, check_same_thread=False)
-        self._build_table()
 
         return self
 
@@ -86,7 +86,12 @@ class PizzaStore:
             self.connection.execute(wal)
             self.connection.execute(sql)
             self.connection.commit()
-            self._table_built = True
+
+    def get_sales_count(self) -> int:
+        """Return the count of rows for the sales table."""
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute("SELECT COUNT(*) FROM sales")
+            return cursor.fetchone()[0]
 
     def save_orders(self, orders: Iterable[Order]) -> None:
         """Save multiple orders to the table."""
@@ -118,32 +123,58 @@ class PizzaStore:
         """Save an order to the table."""
         self.save_orders((order,))
 
+    def flush_orders(self) -> None:
+        """Flush sales table. USE WITH CAUTION."""
+        with self._write_lock:
+            with closing(self.connection.cursor()) as cursor:
+                cursor.execute("DELETE FROM sales")
+
+            self.connection.commit()
+
+    def build_sales_from_csv(self, filename: str, *, flush: bool = False) -> None:
+        """
+        Fill the sales table from a csv file input.
+
+        Headers are required in the csv. The following columns are required:
+
+        - id
+        - date
+        - time
+        - name
+        - size
+        - type
+        - price
+
+        Args:
+            filename: Path and name of the csv to load
+            flush: When true the sales table will be flushed first
+        """
+        with open(filename, "r") as csv_in:
+            reader = csv.DictReader(csv_in)
+            orders = (
+                Order(
+                    order_id=r["id"],
+                    date=r["date"],
+                    time=r["time"],
+                    name=r["name"],
+                    size=r["size"],
+                    style=r["type"],
+                    price=r["price"],
+                )
+                for r in reader
+            )
+
+            self._build_table()
+            if flush:
+                self.flush_orders()
+            self.save_orders(orders)
+
 
 if __name__ == "__main__":
-    import os
-
-    print("This will purge the existing database and build a new one.")
-    if input("Load pizza.csv into pizzastore? (y/N) ").upper() not in ("Y", "YES"):
+    print("This will purge the existing sales table and refill it.")
+    if input(f"Load {_SALES_CSV} into pizzastore? (y/N) ").upper() not in ("Y", "YES"):
         raise SystemExit(0)
 
-    if os.path.exists(_STORE_FILENAME):
-        os.remove(_STORE_FILENAME)
-
-    store = PizzaStore()
-    store.connect()
-
-    with open("pizza.csv", "r") as csv_in:
-        reader = csv.DictReader(csv_in)
-        orders = (
-            Order(
-                order_id=r["id"],
-                date=r["date"],
-                time=r["time"],
-                name=r["name"],
-                size=r["size"],
-                style=r["type"],
-                price=r["price"],
-            )
-            for r in reader
-        )
-        store.save_orders(orders)
+    store = PizzaStore().connect()
+    store.build_sales_from_csv(_SALES_CSV, flush=True)
+    print(f"Sales table now has {store.get_sales_count()} rows.")
