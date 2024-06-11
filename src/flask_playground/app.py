@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import flask
+import svcs
+
+from .pizzastore import PizzaStore
 
 SECRET_KEY = "hush now, this is secret"
 
@@ -11,6 +14,16 @@ def construct_app() -> flask.Flask:
     app = flask.Flask(__name__)
     app.secret_key = SECRET_KEY
 
+    store = PizzaStore()
+    svcs.flask.init_app(app)
+    svcs.flask.register_factory(
+        app=app,
+        svc_type=PizzaStore,
+        factory=store.connect,
+        ping=store.health_check,
+        on_registry_close=store.disconnect,
+    )
+
     return app
 
 
@@ -19,6 +32,9 @@ app = construct_app()
 
 @app.route("/", methods=["GET"])
 def root() -> flask.Response:
+    store = svcs.flask.get(PizzaStore)
+    results = store.connection.execute("SELECT COUNT(*) FROM sales")
+
     if "username" in flask.session:
         username = flask.session["username"]
         return flask.make_response(
@@ -27,7 +43,10 @@ def root() -> flask.Response:
                     <body>
                         <p>Welcome, {username}</p>
                         <br><br>
-                        <a href="/logout">Logout here</a>
+                        <p>Using store id: {id(store)}</p>
+                        <p>Total rows: {results.fetchone()[0]}</p>
+                        <br><br>
+                        <p><a href="/logout">Logout here</a></p>
                     </body>
                 </html>
             """
