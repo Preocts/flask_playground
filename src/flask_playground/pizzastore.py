@@ -7,7 +7,6 @@ from contextlib import closing
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from threading import Lock
-from traceback import TracebackException
 
 _STORE_FILENAME = "pizza.sqlite3"
 
@@ -26,13 +25,11 @@ class Order:
 class PizzaStore:
     """A datastore for pizza sales using an SQLite3 database."""
 
-    _table_built = False
-    _write_lock = Lock()
-
     def __init__(self, db_file: str = _STORE_FILENAME) -> None:
         """Initialize the datastore object."""
         self.db_file = db_file
         self._connection: Connection | None = None
+        self._write_lock = Lock()
 
     @property
     def connection(self) -> Connection:
@@ -40,7 +37,7 @@ class PizzaStore:
             raise DatabaseError("No connection available, did you forget to connect?")
         return self._connection
 
-    def connect(self) -> None:
+    def connect(self) -> PizzaStore:
         """
         Connect to the database, creates file if not exist.
 
@@ -53,27 +50,13 @@ class PizzaStore:
         self._connection = Connection(self.db_file, check_same_thread=False)
         self._build_table()
 
+        return self
+
     def disconnect(self) -> None:
         """Disconnects the databse."""
         if self._connection:
             self._connection.close()
             self._connection = None
-
-    def __enter__(self) -> PizzaStore:
-        try:
-            self.connect()
-        except DatabaseError:
-            pass
-
-        return self
-
-    def __exit__(
-        self,
-        type_: type,
-        value: Exception,
-        traceback: TracebackException,
-    ) -> None:
-        self.disconnect()
 
     def health_check(self) -> None:
         """Run check. Raises ValueError on failure."""
@@ -86,9 +69,7 @@ class PizzaStore:
 
     def _build_table(self) -> None:
         """Build the table if needed."""
-        if self._table_built:
-            return None
-
+        wal = "PRAGMA journal_mode=WAL;"
         sql = """\
             CREATE TABLE IF NOT EXISTS sales
             (
@@ -102,6 +83,7 @@ class PizzaStore:
             )"""
 
         with self._write_lock:
+            self.connection.execute(wal)
             self.connection.execute(sql)
             self.connection.commit()
             self._table_built = True
