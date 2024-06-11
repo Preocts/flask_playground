@@ -12,8 +12,18 @@ from flask_playground.pizzastore import PizzaStore
 
 
 @pytest.fixture()
-def store() -> Generator[PizzaStore, None, None]:
-    yield PizzaStore(":memory:")
+def store(tmpdir) -> Generator[PizzaStore, None, None]:
+    tempfile = tmpdir.join("test.db")
+    store = PizzaStore(tempfile)
+    store.connect()
+
+    try:
+        store._build_table()
+        store.disconnect()
+        yield store
+
+    finally:
+        os.remove(tempfile)
 
 
 def test_connection_raises_when_not_connected(store: PizzaStore) -> None:
@@ -54,27 +64,35 @@ def test_health_check_fails(store: PizzaStore) -> None:
 
 def test_save_single_order(store: PizzaStore) -> None:
     store.connect()
-    conn = store.connection
     order = Order("mock", "mock", "mock", "mock", "mock", "mock", "mock")
 
     store.save_order(order)
-    results = conn.execute("SELECT COUNT(*) FROM sales")
 
-    assert results.fetchone() == (1,)
+    assert store.get_sales_count() == 1
 
 
 def test_save_multiple_orders(store: PizzaStore) -> None:
     store.connect()
-    conn = store.connection
     orders = (
         Order(str(idx), "mock", "mock", "mock", "mock", "mock", "mock")
         for idx in range(10_000)
     )
 
     store.save_orders(orders)
-    results = conn.execute("SELECT COUNT(*) FROM sales")
 
-    assert results.fetchone() == (10_000,)
+    assert store.get_sales_count() == 10_000
+
+
+def test_flush_orders(store: PizzaStore) -> None:
+    store.connect()
+    order = Order("mock", "mock", "mock", "mock", "mock", "mock", "mock")
+    store.save_order(order)
+    prior_count = store.get_sales_count()
+
+    store.flush_orders()
+
+    assert prior_count == 1
+    assert store.get_sales_count() == 0
 
 
 def _writer(
@@ -90,33 +108,25 @@ def _writer(
         pizza_store.save_order(order)
 
 
-def test_writing_lock_on_database(tmpdir) -> None:
+def test_writing_lock_on_database(store: PizzaStore) -> None:
     number_of_threads = 50
     rows_to_write = 10
-    tempfile = tmpdir.join("test.db")
-    store = PizzaStore(tempfile)
     store.connect()
 
     threads = []
     start_flag = threading.Event()
 
-    try:
-        for thread_number in range(number_of_threads):
-            args = (thread_number, rows_to_write, start_flag, store)
-            thread = threading.Thread(target=_writer, args=args)
-            threads.append(thread)
-            thread.start()
+    for thread_number in range(number_of_threads):
+        args = (thread_number, rows_to_write, start_flag, store)
+        thread = threading.Thread(target=_writer, args=args)
+        threads.append(thread)
+        thread.start()
 
-        start_flag.set()
+    start_flag.set()
 
-        for thread in threads:
-            thread.join()
+    for thread in threads:
+        thread.join()
 
-        results = store.connection.execute("SELECT COUNT(*) FROM sales")
-        count = results.fetchone()[0]
+    assert store.get_sales_count() == number_of_threads * rows_to_write
 
-        assert count == number_of_threads * rows_to_write
-
-    finally:
-        os.remove(tempfile)
-        store.disconnect()
+    store.disconnect()
