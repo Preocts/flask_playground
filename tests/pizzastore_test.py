@@ -27,27 +27,17 @@ def test_connect_opens_a_connection(store: PizzaStore) -> None:
     assert store.connection
 
 
+def test_raise_when_connection_already_open(store: PizzaStore) -> None:
+    store.connect()
+
+    with pytest.raises(DatabaseError):
+        store.connect()
+
+
 def test_disconnect_does_nothing_with_no_connection(store: PizzaStore) -> None:
     store.disconnect()
 
     assert True
-
-
-def test_context_manager_opens_and_closes_connection(store: PizzaStore) -> None:
-    with store:
-        assert store.connection
-    with pytest.raises(DatabaseError):
-        store.connection
-
-
-def test_context_manager_uses_existing_connection(
-    store: PizzaStore,
-) -> None:
-    store.connect()
-    expected_conn = store.connection
-
-    with store:
-        assert store.connection is expected_conn
 
 
 def test_health_check_passes(store: PizzaStore) -> None:
@@ -91,15 +81,13 @@ def _writer(
     thread: int,
     rows_to_write: int,
     flag: threading.Event,
-    database_file: str,
+    pizza_store: PizzaStore,
 ) -> None:
-    pizza_store = PizzaStore(database_file)
     flag.wait()
     for idx in range(rows_to_write):
         order_id = f"{idx}-{thread}-mock"
         order = Order(order_id, "mock", "mock", "mock", "mock", "mock", "mock")
-        with pizza_store:
-            pizza_store.save_order(order)
+        pizza_store.save_order(order)
 
 
 def test_writing_lock_on_database(tmpdir) -> None:
@@ -107,13 +95,14 @@ def test_writing_lock_on_database(tmpdir) -> None:
     rows_to_write = 10
     tempfile = tmpdir.join("test.db")
     store = PizzaStore(tempfile)
+    store.connect()
 
     threads = []
     start_flag = threading.Event()
 
     try:
         for thread_number in range(number_of_threads):
-            args = (thread_number, rows_to_write, start_flag, tempfile)
+            args = (thread_number, rows_to_write, start_flag, store)
             thread = threading.Thread(target=_writer, args=args)
             threads.append(thread)
             thread.start()
@@ -123,11 +112,11 @@ def test_writing_lock_on_database(tmpdir) -> None:
         for thread in threads:
             thread.join()
 
-        with store:
-            results = store.connection.execute("SELECT COUNT(*) FROM sales")
-            count = results.fetchone()[0]
+        results = store.connection.execute("SELECT COUNT(*) FROM sales")
+        count = results.fetchone()[0]
 
         assert count == number_of_threads * rows_to_write
 
     finally:
         os.remove(tempfile)
+        store.disconnect()
