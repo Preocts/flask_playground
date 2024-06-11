@@ -9,3 +9,20 @@
 
 
 Pizza datasource: [download](https://www.kaggle.com/datasets/mexwell/pizza-sales)
+
+
+## Dev Setup
+
+Assumes use of a virtual environment (venv)
+
+### Install all dependencies and editable package
+
+`python -m pip install -e .[dev,test]; pre-commit install`
+
+### Build a database file
+
+`python -m flask_playground.pizzastore`
+
+### Launch test server
+
+`python -m flask_playground.app`
