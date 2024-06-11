@@ -19,7 +19,7 @@ def construct_app() -> flask.Flask:
     svcs.flask.register_factory(
         app=app,
         svc_type=PizzaStore,
-        factory=store.connect,
+        factory=store.svcs_factory,
         ping=store.health_check,
         on_registry_close=store.disconnect,
     )
@@ -33,7 +33,6 @@ app = construct_app()
 @app.route("/", methods=["GET"])
 def root() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
-    results = store.connection.execute("SELECT COUNT(*) FROM sales")
 
     if "username" in flask.session:
         username = flask.session["username"]
@@ -44,7 +43,9 @@ def root() -> flask.Response:
                         <p>Welcome, {username}</p>
                         <br><br>
                         <p>Using store id: {id(store)}</p>
-                        <p>Total rows: {results.fetchone()[0]}</p>
+                        <p>Total rows: {store.get_sales_count()}</p>
+                        <br><br>
+                        <p><a href="/pagetwo">Page Two</a></p>
                         <br><br>
                         <p><a href="/logout">Logout here</a></p>
                     </body>
@@ -53,6 +54,26 @@ def root() -> flask.Response:
         )
 
     return flask.make_response(flask.redirect(flask.url_for("login")))
+
+
+@app.route("/pagetwo", methods=["GET"])
+def pagetwo() -> flask.Response:
+    store = svcs.flask.get(PizzaStore)
+
+    return flask.make_response(
+        f"""\
+            <html>
+                <body>
+                    <p>This is page two</p>
+                    <br><br>
+                    <p>Using store id: {id(store)}</p>
+                    <p>Total rows: {store.get_sales_count()}</p>
+                    <br><br>
+                    <p><a href="/">Return home</a></p>
+                </body>
+            </html>
+        """
+    )
 
 
 @app.route("/login", methods=["POST", "GET"])
