@@ -41,7 +41,7 @@ def require_login(func: Callable[..., flask.Response]) -> Callable[..., flask.Re
 
     @functools.wraps(func)
     def login_enforement(*args: Any, **kwargs: Any) -> flask.Response:
-        if not flask.session.get("username", ""):
+        if not flask.session.get("usersession"):
             return flask.make_response(flask.redirect(flask.url_for("login")))
 
         return func(*args, **kwargs)
@@ -54,7 +54,7 @@ def check_expired(func: Callable[..., flask.Response]) -> Callable[..., flask.Re
 
     @functools.wraps(func)
     def login_enforement(*args: Any, **kwargs: Any) -> flask.Response:
-        granted_at = flask.session.get("granted_at", 0)
+        granted_at = flask.session["usersession"].get("granted_at", 0)
         is_expired = int(time.time()) - granted_at > SESSION_LENGTH_SECONDS
 
         if is_expired:
@@ -71,30 +71,20 @@ def check_expired(func: Callable[..., flask.Response]) -> Callable[..., flask.Re
 def root() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
 
-    if "username" in flask.session:
-        return flask.make_response(
-            f"""\
-                <html>
-                    <body>
-                        <p>Welcome, {flask.session["username"]}</p>
-                        <br><br>
-                        <p>Using store id: {id(store)}</p>
-                        <p>Total rows: {store.get_sales_count()}</p>
-                        <br><br>
-                        <p><a href="/pagetwo">Page Two</a></p>
-                        <br><br>
-                        <p><a href="/logout">Logout here</a></p>
-                    </body>
-                </html>
-            """
-        )
+    session = flask.session["usersession"]
     return flask.make_response(
-        """\
+        f"""\
             <html>
                 <body>
-                    <p>Welcome,</p>
+                    <p>Welcome, {session["username"]}</p>
+                    <p>Session granted at: {session["granted_at"]}</p>
                     <br><br>
-                    <p><a href="/login">Login here</a></p>
+                    <p>Using store id: {id(store)}</p>
+                    <p>Total rows: {store.get_sales_count()}</p>
+                    <br><br>
+                    <p><a href="/pagetwo">Page Two</a></p>
+                    <br><br>
+                    <p><a href="/logout">Logout here</a></p>
                 </body>
             </html>
         """
@@ -140,16 +130,17 @@ def login() -> flask.Response:
             """
         )
 
-    flask.session["username"] = flask.request.form["username"]
-    flask.session["granted_at"] = int(time.time())
+    flask.session["usersession"] = {
+        "username": flask.request.form["username"],
+        "granted_at": int(time.time()),
+    }
 
     return flask.make_response(flask.redirect(flask.url_for("root")))
 
 
 @app.route("/logout", methods=["GET"])
 def logout() -> flask.Response:
-    flask.session.pop("username", default=None)
-    flask.session.pop("granted_at", default=None)
+    flask.session.pop("usersession", default=None)
     return flask.make_response(flask.redirect(flask.url_for("root")))
 
 
