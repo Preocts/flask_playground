@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import functools
+import os
+import secrets
 import time
 from collections.abc import Callable
 from typing import Any
@@ -10,15 +12,14 @@ import svcs
 
 from .pizzastore import PizzaStore
 
-SECRET_KEY = "hush now, this is secret to everyone"
+SECRET_KEY_ENV = "FLASK_APP_SECRET_KEY"
 SESSION_LENGTH_SECONDS = 10
 
 
 def construct_app() -> flask.Flask:
     """Build an app with all the things."""
-
     app = flask.Flask(__name__)
-    app.secret_key = SECRET_KEY
+    app.secret_key = os.getenv(SECRET_KEY_ENV, secrets.token_hex(32))
 
     store = PizzaStore()
     svcs.flask.init_app(app)
@@ -157,4 +158,4 @@ def logout() -> flask.Response:
 
 
 if __name__ == "__main__":
-    app.run("127.0.0.1", 3000)
+    app.run("127.0.0.1", 3000, debug=True)
