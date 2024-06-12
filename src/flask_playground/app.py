@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -9,7 +10,8 @@ import svcs
 
 from .pizzastore import PizzaStore
 
-SECRET_KEY = "hush now, this is secret"
+SECRET_KEY = "hush now, this is secret to everyone"
+SESSION_LENGTH_SECONDS = 10
 
 
 def construct_app() -> flask.Flask:
@@ -35,11 +37,27 @@ app = construct_app()
 
 
 def require_login(func: Callable[..., flask.Response]) -> Callable[..., flask.Response]:
-    """Decorated functions will always require a valid session."""
+    """Decorated functions will always require a valid session user."""
 
     @functools.wraps(func)
     def login_enforement(*args: Any, **kwargs: Any) -> flask.Response:
-        if not flask.session.get("username"):
+        if not flask.session.get("username", ""):
+            return flask.make_response(flask.redirect(flask.url_for("login")))
+
+        return func(*args, **kwargs)
+
+    return login_enforement
+
+
+def check_expired(func: Callable[..., flask.Response]) -> Callable[..., flask.Response]:
+    """Decorated functions will always require an unexpired session."""
+
+    @functools.wraps(func)
+    def login_enforement(*args: Any, **kwargs: Any) -> flask.Response:
+        granted_at = flask.session.get("granted_at", 0)
+        is_expired = int(time.time()) - granted_at > SESSION_LENGTH_SECONDS
+
+        if is_expired:
             return flask.make_response(flask.redirect(flask.url_for("login")))
 
         return func(*args, **kwargs)
@@ -48,6 +66,8 @@ def require_login(func: Callable[..., flask.Response]) -> Callable[..., flask.Re
 
 
 @app.route("/", methods=["GET"])
+@require_login
+@check_expired
 def root() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
 
@@ -83,6 +103,7 @@ def root() -> flask.Response:
 
 @app.route("/pagetwo", methods=["GET"])
 @require_login
+@check_expired
 def pagetwo() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
 
@@ -120,12 +141,15 @@ def login() -> flask.Response:
         )
 
     flask.session["username"] = flask.request.form["username"]
+    flask.session["granted_at"] = int(time.time())
+
     return flask.make_response(flask.redirect(flask.url_for("root")))
 
 
 @app.route("/logout", methods=["GET"])
 def logout() -> flask.Response:
     flask.session.pop("username", default=None)
+    flask.session.pop("granted_at", default=None)
     return flask.make_response(flask.redirect(flask.url_for("root")))
 
 
