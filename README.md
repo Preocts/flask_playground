@@ -23,6 +23,14 @@ Assumes use of a virtual environment (venv)
 
 `python -m flask_playground.pizzastore`
 
+### Set app secret key (optional)
+
+`export FLASK_APP_SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")`
+
+A random key will be assigned to the app if not present in the environment
+variables on launch. This will work in most cases but all sessions will be
+invalidated on each launch.
+
 ### Launch test server
 
 `python -m flask_playground.app`
