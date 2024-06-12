@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import functools
+from collections.abc import Callable
+from typing import Any
+
 import flask
 import svcs
 
@@ -30,17 +34,29 @@ def construct_app() -> flask.Flask:
 app = construct_app()
 
 
+def require_login(func: Callable[..., flask.Response]) -> Callable[..., flask.Response]:
+    """Decorated functions will always require a valid session."""
+
+    @functools.wraps(func)
+    def login_enforement(*args: Any, **kwargs: Any) -> flask.Response:
+        if not flask.session.get("username"):
+            return flask.make_response(flask.redirect(flask.url_for("login")))
+
+        return func(*args, **kwargs)
+
+    return login_enforement
+
+
 @app.route("/", methods=["GET"])
 def root() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
 
     if "username" in flask.session:
-        username = flask.session["username"]
         return flask.make_response(
             f"""\
                 <html>
                     <body>
-                        <p>Welcome, {username}</p>
+                        <p>Welcome, {flask.session["username"]}</p>
                         <br><br>
                         <p>Using store id: {id(store)}</p>
                         <p>Total rows: {store.get_sales_count()}</p>
@@ -52,11 +68,21 @@ def root() -> flask.Response:
                 </html>
             """
         )
-
-    return flask.make_response(flask.redirect(flask.url_for("login")))
+    return flask.make_response(
+        """\
+            <html>
+                <body>
+                    <p>Welcome,</p>
+                    <br><br>
+                    <p><a href="/login">Login here</a></p>
+                </body>
+            </html>
+        """
+    )
 
 
 @app.route("/pagetwo", methods=["GET"])
+@require_login
 def pagetwo() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
 
