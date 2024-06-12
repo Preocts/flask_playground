@@ -42,6 +42,7 @@ def require_login(func: Callable[..., flask.Response]) -> Callable[..., flask.Re
     @functools.wraps(func)
     def login_enforement(*args: Any, **kwargs: Any) -> flask.Response:
         if not flask.session.get("usersession"):
+            flask.session["return_url"] = flask.request.url
             return flask.make_response(flask.redirect(flask.url_for("login")))
 
         return func(*args, **kwargs)
@@ -58,7 +59,9 @@ def check_expired(func: Callable[..., flask.Response]) -> Callable[..., flask.Re
         is_expired = int(time.time()) - granted_at > SESSION_LENGTH_SECONDS
 
         if is_expired:
-            return flask.make_response(flask.redirect(flask.url_for("login")))
+            flask.session.pop("usersession", default=None)
+            flask.session["return_url"] = flask.request.url
+            return flask.make_response(flask.redirect(flask.url_for("logout")))
 
         return func(*args, **kwargs)
 
@@ -113,9 +116,9 @@ def pagetwo() -> flask.Response:
     )
 
 
-@app.route("/login", methods=["POST", "GET"])
+@app.route("/login", methods=["GET"])
 def login() -> flask.Response:
-    if flask.request.method == "GET":
+    if "usersession" not in flask.session:
         return flask.make_response(
             """\
             <html>
@@ -130,18 +133,27 @@ def login() -> flask.Response:
             """
         )
 
+    return_route = flask.session.pop("return_url", default=flask.url_for("root"))
+
+    return flask.make_response(flask.redirect(return_route))
+
+
+@app.route("/login", methods=["POST"])
+def login_postback() -> flask.Response:
     flask.session["usersession"] = {
         "username": flask.request.form["username"],
         "granted_at": int(time.time()),
     }
 
-    return flask.make_response(flask.redirect(flask.url_for("root")))
+    return_route = flask.session.pop("return_url", default=flask.url_for("root"))
+
+    return flask.make_response(flask.redirect(return_route))
 
 
 @app.route("/logout", methods=["GET"])
 def logout() -> flask.Response:
     flask.session.pop("usersession", default=None)
-    return flask.make_response(flask.redirect(flask.url_for("root")))
+    return flask.make_response(flask.redirect(flask.url_for("login")))
 
 
 if __name__ == "__main__":
