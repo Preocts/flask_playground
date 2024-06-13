@@ -99,6 +99,29 @@ class PizzaStore:
             cursor.execute("SELECT COUNT(*) FROM sales")
             return cursor.fetchone()[0]
 
+    def get_recent(self, row_count: int = 10) -> list[Order]:
+        """Return the most recent Orders from the table."""
+        sql = """\
+            SELECT
+                order_id,
+                date,
+                time,
+                name,
+                size,
+                style,
+                price
+            FROM sales
+            ORDER BY
+                date DESC,
+                time DESC
+            LIMIT(?);
+        """
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute(sql, [row_count])
+            results = cursor.fetchall()
+
+        return [Order(*result) for result in results]
+
     def save_orders(self, orders: Iterable[Order]) -> None:
         """Save multiple orders to the table."""
         sql = """\

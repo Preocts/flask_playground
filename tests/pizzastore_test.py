@@ -95,6 +95,40 @@ def test_flush_orders(store: PizzaStore) -> None:
     assert store.get_sales_count() == 0
 
 
+def test_get_recent(store: PizzaStore) -> None:
+    store.connect()
+    orders = [
+        Order("101", "2024/01/01", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("102", "2024/01/02", "12:00:00", "mock", "mock", "mock", "mock"),
+        Order("103", "2024/01/02", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("104", "2024/01/03", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("105", "2024/01/04", "00:00:00", "mock", "mock", "mock", "mock"),
+    ]
+    expected_order = ["105", "104", "102", "103", "101"]
+    store.save_orders(orders)
+
+    results = store.get_recent()
+    order = [result.order_id for result in results]
+
+    assert order == expected_order
+
+
+def test_get_recent_limits(store: PizzaStore) -> None:
+    store.connect()
+    orders = [
+        Order("101", "2024/01/01", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("102", "2024/01/02", "12:00:00", "mock", "mock", "mock", "mock"),
+        Order("103", "2024/01/02", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("104", "2024/01/03", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("105", "2024/01/04", "00:00:00", "mock", "mock", "mock", "mock"),
+    ]
+    store.save_orders(orders)
+
+    results = store.get_recent(1)
+
+    assert len(results) == 1
+
+
 def _writer(
     thread: int,
     rows_to_write: int,
