@@ -1,0 +1,47 @@
+{% extends "_shared_base.html" %}
+{% block title %}Bad Egg Pizza{% endblock %}
+{% block content %}
+<div class='pageContent'>
+  <h1>Bad Egg Pizza</h1>
+  <p>Welcome, {{ username }}</p>
+  <p>The weight of {{ total_rows }} pizza sales compresses the air.</p>
+  <p><a href="/pagetwo">Page Two</a></p>
+  <p><a href="/pagethree">Page Three</a></p>
+  <p><a href="/pagefour">Page Four</a></p>
+  <p><a href="/logout">Logout here</a></p>
+  <hr>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Name</th>
+        <th>Size</th>
+        <th>Style</th>
+        <th>Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if sales_rows %}
+        {% for sale_row in sales_rows %}
+        <tr>
+          <td>{{ sale.row.date }}</td>
+          <td>{{ sale.row.time }}</td>
+          <td>{{ sale.row.name }}</td>
+          <td>{{ sale.row.size }}</td>
+          <td>{{ sale.row.style }}</td>
+          <td>{{ sale.row.price }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td span="6">No data</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+  </body>
+</html>

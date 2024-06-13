@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{% block title %}Some cool title{% endblock%}</title>
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <div class='content'>
+      {% block content %}{% endblock %}
+    </div>
+  </body>
+</html>
