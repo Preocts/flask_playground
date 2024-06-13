@@ -69,6 +69,16 @@ def check_expired(func: Callable[..., flask.Response]) -> Callable[..., flask.Re
     return login_enforement
 
 
+@app.errorhandler(404)
+def not_found(_: Any) -> flask.Response:
+    return flask.make_response(flask.render_template("notfound.html"))
+
+
+@app.errorhandler(Exception)
+def failure(error: Any) -> flask.Response:
+    return flask.make_response(flask.render_template("error.html", error=error))
+
+
 @app.route("/", methods=["GET"])
 @require_login
 @check_expired
