@@ -13,7 +13,7 @@ import svcs
 from .pizzastore import PizzaStore
 
 SECRET_KEY_ENV = "FLASK_APP_SECRET_KEY"
-SESSION_LENGTH_SECONDS = 10
+SESSION_LENGTH_SECONDS = 30
 
 
 def construct_app() -> flask.Flask:
@@ -76,22 +76,13 @@ def root() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
 
     session = flask.session["usersession"]
+
     return flask.make_response(
-        f"""\
-            <html>
-                <body>
-                    <p>Welcome, {session["username"]}</p>
-                    <p>Session granted at: {session["granted_at"]}</p>
-                    <br><br>
-                    <p>Using store id: {id(store)}</p>
-                    <p>Total rows: {store.get_sales_count()}</p>
-                    <br><br>
-                    <p><a href="/pagetwo">Page Two</a></p>
-                    <br><br>
-                    <p><a href="/logout">Logout here</a></p>
-                </body>
-            </html>
-        """
+        flask.render_template(
+            "index.html",
+            username=session["username"],
+            total_rows=store.get_sales_count(),
+        )
     )
 
 
@@ -102,37 +93,24 @@ def pagetwo() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
 
     return flask.make_response(
-        f"""\
-            <html>
-                <body>
-                    <p>This is page two</p>
-                    <br><br>
-                    <p>Using store id: {id(store)}</p>
-                    <p>Total rows: {store.get_sales_count()}</p>
-                    <br><br>
-                    <p><a href="/">Return home</a></p>
-                </body>
-            </html>
-        """
+        flask.render_template(
+            "pagetwo/index.html",
+            count=store.get_sales_count(),
+        )
     )
+
+
+@app.route("/pagethree", methods=["GET"])
+@require_login
+@check_expired
+def pagethree() -> flask.Response:
+    raise ValueError("The egg has gone bad.")
 
 
 @app.route("/login", methods=["GET"])
 def login() -> flask.Response:
     if "usersession" not in flask.session:
-        return flask.make_response(
-            """\
-            <html>
-                <body>
-                    <form method="post">
-                        <p>Please enter a username to login</p>
-                        <p><input type="text" name="username"></p>
-                        <p><input type="submit" value="Login"></p>
-                    </form>
-                </body>
-            </html>
-            """
-        )
+        return flask.make_response(flask.render_template("auth/login.html"))
 
     return_route = flask.session.pop("return_url", default=flask.url_for("root"))
 
@@ -154,7 +132,11 @@ def login_postback() -> flask.Response:
 @app.route("/logout", methods=["GET"])
 def logout() -> flask.Response:
     flask.session.pop("usersession", default=None)
-    return flask.make_response(flask.redirect(flask.url_for("login")))
+
+    if "return_url" in flask.session:
+        return flask.make_response(flask.redirect(flask.url_for("login")))
+
+    return flask.make_response(flask.render_template("auth/logout.html"))
 
 
 if __name__ == "__main__":
