@@ -79,13 +79,13 @@ class PizzaStore:
         sql = """\
             CREATE TABLE IF NOT EXISTS sales
             (
-                order_id STRING,
-                date STRING,
-                time STRING,
-                name STRING,
-                size STRING,
-                style STRING,
-                price STRING
+                order_id TEXT,
+                date TEXT,
+                time TEXT,
+                name TEXT,
+                size TEXT,
+                style TEXT,
+                price TEXT
             )"""
 
         with self._write_lock:
