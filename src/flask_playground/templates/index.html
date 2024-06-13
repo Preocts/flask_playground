@@ -22,15 +22,15 @@
       </tr>
     </thead>
     <tbody>
-      {% if sales_rows %}
-        {% for sale_row in sales_rows %}
+      {% if sale_rows %}
+        {% for sale_row in sale_rows %}
         <tr>
-          <td>{{ sale.row.date }}</td>
-          <td>{{ sale.row.time }}</td>
-          <td>{{ sale.row.name }}</td>
-          <td>{{ sale.row.size }}</td>
-          <td>{{ sale.row.style }}</td>
-          <td>{{ sale.row.price }}</td>
+          <td>{{ sale_row.date }}</td>
+          <td>{{ sale_row.time }}</td>
+          <td>{{ sale_row.name }}</td>
+          <td>{{ sale_row.size }}</td>
+          <td>{{ sale_row.style }}</td>
+          <td>{{ sale_row.price }}</td>
         </tr>
         {% endfor %}
       {% else %}

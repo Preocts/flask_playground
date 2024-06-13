@@ -92,6 +92,7 @@ def root() -> flask.Response:
             "index.html",
             username=session["username"],
             total_rows=store.get_sales_count(),
+            sale_rows=store.get_recent(100),
         )
     )
 
