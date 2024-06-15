@@ -11,9 +11,7 @@
   <p><a href="/pagefour">Page Four</a></p>
   <p><a href="/logout">Logout here</a></p>
   <hr>
-  <div class="orderInput" hx-swap="innerHTML" hx-target="this">
-    {% include 'partial/order_form.html' with context %}
-  </div>
+  {% include 'partial/order_form.html' with context %}
   <hr>
   <table>
     <thead>
