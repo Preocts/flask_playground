@@ -1,0 +1,33 @@
+<form>
+  <label>Name:</label>
+  <select name="name" id="name-select">
+    <option value="">Select Name</option>
+    <option value="hawaiian">hawaiian</option>
+    <option value="classic_dlx">classic_dlx</option>
+    <option value="mexicana">mexicana</option>
+    <option value="thai_ckn">thai_ckn</option>
+    <option value="five_cheese">five_cheese</option>
+    <option value="prsc_argla">prsc_argla</option>
+    <option value="ital_supr">ital_supr</option>
+    <option value="the_greek">the_greek</option>
+    <option value="spinach_supr">spinach_supr</option>
+    <option value="spicy_ital">spicy_ital</option>
+    <option value="cali_ckn">cali_ckn</option>
+  </select>
+  <label>Size:</label>
+  <select name="size" id="size-select">
+    <option value="">Select Size</option>
+    <option value="S">S</option>
+    <option value="M">M</option>
+    <option value="L">L</option>
+  </select>
+  <label>Style:</label>
+  <select name="style" id="style-select">
+    <option value="">Select Type</option>
+    <option value="classic">classic</option>
+    <option value="veggie">veggie</option>
+    <option value="supreme">supreme</option>
+    <option value="chicken">chicken</option>
+  </select>
+  <button hx-post="/order">Place Order</button>
+</form>

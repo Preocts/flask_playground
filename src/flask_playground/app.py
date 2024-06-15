@@ -117,7 +117,7 @@ def place_order() -> flask.Response:
 
     store.save_order(order)
 
-    return flask.make_response()
+    return flask.make_response(flask.render_template("partial/order_form.html"))
 
 
 @app.route("/pagetwo", methods=["GET"])
