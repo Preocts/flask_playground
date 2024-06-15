@@ -5,6 +5,8 @@
     <title>{% block title %}Some cool title{% endblock%}</title>
     <link rel="shortcut icon" href="static/images/favicon.ico">
     {% block extra_css %}{% endblock %}
+    <script src="/static/js/htmx.min.js"></script>
+    {% block extra_scripts %}{% endblock %}
   </head>
   <body>
     <div class='content'>
