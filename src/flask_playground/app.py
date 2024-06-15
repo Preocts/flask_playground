@@ -129,8 +129,10 @@ def place_order() -> flask.Response:
     )
 
     store.save_order(order)
+    resp = flask.make_response(flask.render_template("partial/order_form.html"))
+    resp.headers["HX-Trigger"] = "order-placed-event"
 
-    return flask.make_response(flask.render_template("partial/order_form.html"))
+    return resp
 
 
 @app.route("/pagetwo", methods=["GET"])
