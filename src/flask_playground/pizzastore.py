@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import csv
 import dataclasses
-from collections.abc import Generator
 from collections.abc import Iterable
 from contextlib import closing
 from sqlite3 import Connection
@@ -27,11 +26,12 @@ class Order:
 class PizzaStore:
     """A datastore for pizza sales using an SQLite3 database."""
 
+    _write_lock = Lock()
+
     def __init__(self, db_file: str = _STORE_FILENAME) -> None:
         """Initialize the datastore object."""
         self.db_file = db_file
         self._connection: Connection | None = None
-        self._write_lock = Lock()
 
     @property
     def connection(self) -> Connection:
@@ -52,11 +52,6 @@ class PizzaStore:
         self._connection = Connection(self.db_file, check_same_thread=False)
 
         return self
-
-    def svcs_factory(self) -> Generator[PizzaStore, None, None]:
-        """Yield a connected store, closes on return."""
-        yield self.connect()
-        self.disconnect()
 
     def disconnect(self) -> None:
         """Disconnects the databse."""

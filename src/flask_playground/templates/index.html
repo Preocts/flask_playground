@@ -13,6 +13,6 @@
   <hr>
   {% include 'partial/order_form.html' with context %}
   <hr>
-  <p><span hx-trigger="load delay:1s" hx-get="/order_table" hx-swap="outerHTML">Loading table...</span></p>
+  <p><span hx-trigger="load" hx-get="/order_table" hx-swap="outerHTML">Loading table...</span></p>
 </div>
 {% endblock %}

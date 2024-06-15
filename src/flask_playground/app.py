@@ -6,6 +6,7 @@ import os
 import secrets
 import time
 from collections.abc import Callable
+from collections.abc import Generator
 from typing import Any
 
 import flask
@@ -18,6 +19,13 @@ SECRET_KEY_ENV = "FLASK_APP_SECRET_KEY"
 SESSION_LENGTH_SECONDS = 30
 
 
+def _database_factory() -> Generator[PizzaStore, None, None]:
+    """Generate a PizzaStore object for svcs."""
+    store = PizzaStore()
+    yield store.connect()
+    store.disconnect()
+
+
 def construct_app() -> flask.Flask:
     """Build an app with all the things."""
     app = flask.Flask(__name__)
@@ -28,7 +36,7 @@ def construct_app() -> flask.Flask:
     svcs.flask.register_factory(
         app=app,
         svc_type=PizzaStore,
-        factory=store.svcs_factory,
+        factory=_database_factory,
         ping=store.health_check,
         on_registry_close=store.disconnect,
     )
