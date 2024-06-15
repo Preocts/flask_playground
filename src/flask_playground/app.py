@@ -99,6 +99,19 @@ def root() -> flask.Response:
     )
 
 
+@app.route("/total_orders", methods=["GET"])
+@require_login
+@check_expired
+def total_orders() -> flask.Response:
+    store = svcs.flask.get(PizzaStore)
+    return flask.make_response(
+        flask.render_template_string(
+            '<span hx-trigger="order-placed-event from:body" hx-get="/total_orders" hx-swap="outerHTML">{{ total_orders }}</span>',
+            total_orders=store.get_sales_count(),
+        )
+    )
+
+
 @app.route("/order", methods=["POST"])
 @require_login
 @check_expired
