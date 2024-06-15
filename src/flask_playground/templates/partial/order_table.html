@@ -1,7 +1,7 @@
-<div>
-  <table>
+<div hx-trigger="order-placed-event from:body" hx-swap="outerHTML" hx-get="/orders_table">
+  <table id="orders-table">
     <thead>
-      <tr>
+      <tr id="orders-header">
         <th>Date</th>
         <th>Time</th>
         <th>Name</th>
@@ -10,17 +10,17 @@
         <th>Price</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="orders-rows">
       {% if sale_rows %}
         {% for sale_row in sale_rows %}
-        <tr>
-          <td>{{ sale_row.date }}</td>
-          <td>{{ sale_row.time }}</td>
-          <td>{{ sale_row.name }}</td>
-          <td>{{ sale_row.size }}</td>
-          <td>{{ sale_row.style }}</td>
-          <td>{{ sale_row.price }}</td>
-        </tr>
+          <tr>
+            <td>{{ sale_row.date }}</td>
+            <td>{{ sale_row.time }}</td>
+            <td>{{ sale_row.name }}</td>
+            <td>{{ sale_row.size }}</td>
+            <td>{{ sale_row.style }}</td>
+            <td>{{ sale_row.price }}</td>
+          </tr>
         {% endfor %}
       {% else %}
         <tr>
