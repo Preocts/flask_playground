@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import functools
 import os
 import secrets
@@ -10,6 +11,7 @@ from typing import Any
 import flask
 import svcs
 
+from .pizzastore import Order
 from .pizzastore import PizzaStore
 
 SECRET_KEY_ENV = "FLASK_APP_SECRET_KEY"
@@ -95,6 +97,27 @@ def root() -> flask.Response:
             sale_rows=store.get_recent(100),
         )
     )
+
+
+@app.route("/order", methods=["POST"])
+@require_login
+@check_expired
+def place_order() -> flask.Response:
+    store = svcs.flask.get(PizzaStore)
+
+    order = Order(
+        order_id="broken",
+        date=datetime.datetime.now().strftime("%Y-%m-%d"),
+        time=datetime.datetime.now().strftime("%H:%M:%S"),
+        name=flask.request.form["name"],
+        size=flask.request.form["size"],
+        style=flask.request.form["style"],
+        price="20.00",
+    )
+
+    store.save_order(order)
+
+    return flask.make_response()
 
 
 @app.route("/pagetwo", methods=["GET"])
