@@ -133,13 +133,16 @@ def _writer(
     thread: int,
     rows_to_write: int,
     flag: threading.Event,
-    pizza_store: PizzaStore,
+    store_file: str,
 ) -> None:
+    store = PizzaStore(store_file)
+    store.connect()
     flag.wait()
     for idx in range(rows_to_write):
         order_id = f"{idx}-{thread}-mock"
         order = Order(order_id, "mock", "mock", "mock", "mock", "mock", "mock")
-        pizza_store.save_order(order)
+        store.save_order(order)
+    store.disconnect()
 
 
 def test_writing_lock_on_database(store: PizzaStore) -> None:
@@ -151,7 +154,7 @@ def test_writing_lock_on_database(store: PizzaStore) -> None:
     start_flag = threading.Event()
 
     for thread_number in range(number_of_threads):
-        args = (thread_number, rows_to_write, start_flag, store)
+        args = (thread_number, rows_to_write, start_flag, store.db_file)
         thread = threading.Thread(target=_writer, args=args)
         threads.append(thread)
         thread.start()
