@@ -93,16 +93,12 @@ def failure(error: Any) -> flask.Response:
 @require_login
 @check_expired
 def root() -> flask.Response:
-    store = svcs.flask.get(PizzaStore)
-
     session = flask.session["usersession"]
 
     return flask.make_response(
         flask.render_template(
             "index.html",
             username=session["username"],
-            total_rows=store.get_sales_count(),
-            sale_rows=store.get_recent(100),
         )
     )
 
@@ -120,10 +116,10 @@ def total_orders() -> flask.Response:
     )
 
 
-@app.route("/order_table", methods=["GET"])
+@app.route("/orders_table", methods=["GET"])
 @require_login
 @check_expired
-def order_table() -> flask.Response:
+def orders_table() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
     return flask.make_response(
         flask.render_template(
@@ -151,6 +147,7 @@ def place_order() -> flask.Response:
     )
 
     store.save_order(order)
+
     resp = flask.make_response(flask.render_template("partial/order_form.html"))
     resp.headers["HX-Trigger"] = "order-placed-event"
 
