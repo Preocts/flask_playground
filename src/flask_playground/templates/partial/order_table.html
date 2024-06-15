@@ -1,0 +1,32 @@
+<div>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Name</th>
+        <th>Size</th>
+        <th>Style</th>
+        <th>Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if sale_rows %}
+        {% for sale_row in sale_rows %}
+        <tr>
+          <td>{{ sale_row.date }}</td>
+          <td>{{ sale_row.time }}</td>
+          <td>{{ sale_row.name }}</td>
+          <td>{{ sale_row.size }}</td>
+          <td>{{ sale_row.style }}</td>
+          <td>{{ sale_row.price }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td span="6">No data</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>

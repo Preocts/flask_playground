@@ -112,6 +112,20 @@ def total_orders() -> flask.Response:
     )
 
 
+@app.route("/order_table", methods=["GET"])
+@require_login
+@check_expired
+def order_table() -> flask.Response:
+    store = svcs.flask.get(PizzaStore)
+    return flask.make_response(
+        flask.render_template(
+            "partial/order_table.html",
+            total_rows=store.get_sales_count(),
+            sale_rows=store.get_recent(25),
+        )
+    )
+
+
 @app.route("/order", methods=["POST"])
 @require_login
 @check_expired
