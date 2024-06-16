@@ -1,3 +1,16 @@
+"""
+Notes:
+
+All secured pages should use the @requires_login and @check_expired decorators
+
+Routes intended to be called internally should be prefixed with an underscore the same
+as an internal function. This allows decorators to determine how to redirect the client
+when needed. We don't want to redirect a client to an internal route which only renders
+a partial tempalte.
+
+
+"""
+
 from __future__ import annotations
 
 import datetime
@@ -53,7 +66,11 @@ def require_login(func: Callable[..., flask.Response]) -> Callable[..., flask.Re
     @functools.wraps(func)
     def login_enforement(*args: Any, **kwargs: Any) -> flask.Response:
         if not flask.session.get("usersession"):
-            flask.session["return_url"] = flask.request.url
+            # Do not reroute a user to a private path on return from login
+            if flask.request.path.startswith("/_"):
+                flask.session["return_url"] = flask.request.url_root
+            else:
+                flask.session["return_url"] = flask.request.url
 
             # Return both a flask redirect and an htmx redirect header to cover both
             # cases of js users and js avoiders.
@@ -76,12 +93,20 @@ def check_expired(func: Callable[..., flask.Response]) -> Callable[..., flask.Re
 
         if is_expired:
             flask.session.pop("usersession", default=None)
-            flask.session["return_url"] = flask.request.url
+
+            # Do not reroute a user to a private path on return from login
+            if flask.request.path.startswith("/_"):
+                flask.session["return_url"] = flask.request.url_root
+                code = 403
+            else:
+                flask.session["return_url"] = flask.request.url
+                code = 302
 
             # Return both a flask redirect and an htmx redirect header to cover both
             # cases of js users and js avoiders.
-            resp = flask.make_response(flask.redirect(flask.url_for("logout")))
+            resp = flask.make_response(flask.redirect(flask.url_for("logout"), code))
             resp.headers["HX-Redirect"] = flask.url_for("logout")
+            resp.headers["HX-Refresh"] = "true"
             return resp
 
         return func(*args, **kwargs)
