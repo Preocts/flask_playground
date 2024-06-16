@@ -5,7 +5,7 @@
   <img src="static/images/eggdab.png">
   <h1>Bad Egg Pizza</h1>
   <p>Welcome, {{ username }}</p>
-  <p>The weight of <em><span hx-trigger="load" hx-get="/total_orders" hx-swap="outerHTML">an unknown quantity of</span></em> pizza sales compresses the air.</p>
+  <p>The weight of <em><span hx-trigger="load" hx-get="/_total_orders" hx-swap="outerHTML">an unknown quantity of</span></em> pizza sales compresses the air.</p>
   <p><a href="/pagetwo">Page Two</a></p>
   <p><a href="/pagethree">Page Three</a></p>
   <p><a href="/pagefour">Page Four</a></p>
@@ -13,6 +13,6 @@
   <hr>
   {% include 'partial/order_form.html' with context %}
   <hr>
-  <p><span hx-trigger="load" hx-get="/orders_table" hx-swap="outerHTML">Loading table...</span></p>
+  <p><span hx-trigger="load" hx-get="/_orders_table" hx-swap="outerHTML">Loading table...</span></p>
 </div>
 {% endblock %}
