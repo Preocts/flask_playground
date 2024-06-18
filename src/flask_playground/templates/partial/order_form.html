@@ -1,4 +1,4 @@
-<div class="orderInput" hx-swap="outerHTML" hx-target="this">
+<div class="orderInput">
   <form>
     <label>Name:</label>
     <select name="name" id="name-select">
@@ -30,6 +30,6 @@
       <option value="supreme">supreme</option>
       <option value="chicken">chicken</option>
     </select>
-    <button hx-post="/_order">Place Order</button>
+    <button type=button  hx-post="_place_order" hx-swap="none">Place Order</button>
   </form>
 </div>

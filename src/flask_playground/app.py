@@ -165,7 +165,7 @@ def _orders_table() -> flask.Response:
     )
 
 
-@app.route("/_order", methods=["POST"])
+@app.route("/_place_order", methods=["POST"])
 @require_login
 @check_expired
 def _place_order() -> flask.Response:
@@ -183,7 +183,7 @@ def _place_order() -> flask.Response:
 
     store.save_order(order)
 
-    resp = flask.make_response(flask.render_template("partial/order_form.html"))
+    resp = flask.Response(status=204)
     resp.headers["HX-Trigger"] = "order-placed-event"
 
     return resp
