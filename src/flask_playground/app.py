@@ -172,7 +172,6 @@ def _place_order() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
 
     order = Order(
-        order_id="broken",
         date=datetime.datetime.now().strftime("%Y-%m-%d"),
         time=datetime.datetime.now().strftime("%H:%M:%S"),
         name=flask.request.form["name"],
