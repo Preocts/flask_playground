@@ -2,6 +2,7 @@
   <table id="orders-table">
     <thead>
       <tr id="orders-header">
+        <th>Order Number</th>
         <th>Date</th>
         <th>Time</th>
         <th>Name</th>
@@ -14,6 +15,7 @@
       {% if sale_rows %}
         {% for sale_row in sale_rows %}
           <tr>
+            <td>{{ sale_row.order_id }}</td>
             <td>{{ sale_row.date }}</td>
             <td>{{ sale_row.time }}</td>
             <td>{{ sale_row.name }}</td>

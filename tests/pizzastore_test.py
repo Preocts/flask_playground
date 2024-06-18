@@ -64,7 +64,7 @@ def test_health_check_fails(store: PizzaStore) -> None:
 
 def test_save_single_order(store: PizzaStore) -> None:
     store.connect()
-    order = Order("mock", "mock", "mock", "mock", "mock", "mock", "mock")
+    order = Order("mock", "mock", "mock", "mock", "mock", "mock")
 
     store.save_order(order)
 
@@ -74,8 +74,7 @@ def test_save_single_order(store: PizzaStore) -> None:
 def test_save_multiple_orders(store: PizzaStore) -> None:
     store.connect()
     orders = (
-        Order(str(idx), "mock", "mock", "mock", "mock", "mock", "mock")
-        for idx in range(10_000)
+        Order("mock", "mock", "mock", "mock", "mock", "mock") for idx in range(10_000)
     )
 
     store.save_orders(orders)
@@ -85,7 +84,7 @@ def test_save_multiple_orders(store: PizzaStore) -> None:
 
 def test_flush_orders(store: PizzaStore) -> None:
     store.connect()
-    order = Order("mock", "mock", "mock", "mock", "mock", "mock", "mock")
+    order = Order("mock", "mock", "mock", "mock", "mock", "mock")
     store.save_order(order)
     prior_count = store.get_sales_count()
 
@@ -98,13 +97,13 @@ def test_flush_orders(store: PizzaStore) -> None:
 def test_get_recent(store: PizzaStore) -> None:
     store.connect()
     orders = [
-        Order("101", "2024/01/01", "00:00:00", "mock", "mock", "mock", "mock"),
-        Order("102", "2024/01/02", "12:00:00", "mock", "mock", "mock", "mock"),
-        Order("103", "2024/01/02", "00:00:00", "mock", "mock", "mock", "mock"),
-        Order("104", "2024/01/03", "00:00:00", "mock", "mock", "mock", "mock"),
-        Order("105", "2024/01/04", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("2024/01/01", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("2024/01/02", "12:00:00", "mock", "mock", "mock", "mock"),
+        Order("2024/01/02", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("2024/01/03", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("2024/01/04", "00:00:00", "mock", "mock", "mock", "mock"),
     ]
-    expected_order = ["105", "104", "102", "103", "101"]
+    expected_order = [5, 4, 2, 3, 1]
     store.save_orders(orders)
 
     results = store.get_recent()
@@ -116,11 +115,11 @@ def test_get_recent(store: PizzaStore) -> None:
 def test_get_recent_limits(store: PizzaStore) -> None:
     store.connect()
     orders = [
-        Order("101", "2024/01/01", "00:00:00", "mock", "mock", "mock", "mock"),
-        Order("102", "2024/01/02", "12:00:00", "mock", "mock", "mock", "mock"),
-        Order("103", "2024/01/02", "00:00:00", "mock", "mock", "mock", "mock"),
-        Order("104", "2024/01/03", "00:00:00", "mock", "mock", "mock", "mock"),
-        Order("105", "2024/01/04", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("2024/01/01", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("2024/01/02", "12:00:00", "mock", "mock", "mock", "mock"),
+        Order("2024/01/02", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("2024/01/03", "00:00:00", "mock", "mock", "mock", "mock"),
+        Order("2024/01/04", "00:00:00", "mock", "mock", "mock", "mock"),
     ]
     store.save_orders(orders)
 
@@ -138,9 +137,8 @@ def _writer(
     store = PizzaStore(store_file)
     store.connect()
     flag.wait()
-    for idx in range(rows_to_write):
-        order_id = f"{idx}-{thread}-mock"
-        order = Order(order_id, "mock", "mock", "mock", "mock", "mock", "mock")
+    for _ in range(rows_to_write):
+        order = Order("mock", "mock", "mock", "mock", "mock", "mock")
         store.save_order(order)
     store.disconnect()
 

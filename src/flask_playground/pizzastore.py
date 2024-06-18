@@ -14,13 +14,13 @@ _SALES_CSV = "pizza.csv"
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class Order:
-    order_id: str
     date: str
     time: str
     name: str
     size: str
     style: str
     price: str
+    order_id: int | None = None
 
 
 class PizzaStore:
@@ -74,7 +74,6 @@ class PizzaStore:
         sql = """\
             CREATE TABLE IF NOT EXISTS sales
             (
-                order_id TEXT,
                 date TEXT,
                 time TEXT,
                 name TEXT,
@@ -98,17 +97,18 @@ class PizzaStore:
         """Return the most recent Orders from the table."""
         sql = """\
             SELECT
-                order_id,
                 date,
                 time,
                 name,
                 size,
                 style,
-                price
+                price,
+                ROWID
             FROM sales
             ORDER BY
                 date DESC,
-                time DESC
+                time DESC,
+                ROWID DESC
             LIMIT(?);
         """
         with closing(self.connection.cursor()) as cursor:
@@ -122,7 +122,6 @@ class PizzaStore:
         sql = """\
             INSERT INTO sales
             (
-                order_id,
                 date,
                 time,
                 name,
@@ -131,12 +130,9 @@ class PizzaStore:
                 price
             )
             VALUES
-            (?,?,?,?,?,?,?);
+            (?,?,?,?,?,?);
         """
-        values = (
-            (o.order_id, o.date, o.time, o.name, o.size, o.style, o.price)
-            for o in orders
-        )
+        values = ((o.date, o.time, o.name, o.size, o.style, o.price) for o in orders)
         with self._write_lock:
             with closing(self.connection.cursor()) as cursor:
                 cursor.executemany(sql, values)
@@ -177,7 +173,6 @@ class PizzaStore:
             reader = csv.DictReader(csv_in)
             orders = (
                 Order(
-                    order_id=r["id"],
                     date=r["date"],
                     time=r["time"],
                     name=r["name"],
