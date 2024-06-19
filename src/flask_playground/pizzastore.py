@@ -131,6 +131,20 @@ class PizzaStore:
             results = cursor.fetchall()
         return {style: f"{value:01.2f}" for style, value in results}
 
+    def get_percent_by_name(self) -> dict[str, str]:
+        """Return name:value of all styles and the percentage of their population."""
+        sql = """\
+            SELECT
+                name,
+                (count(*) * 1.0) / ((SELECT COUNT(*) from sales) * 1.0) * 100
+            FROM sales
+            GROUP BY name;
+        """
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute(sql)
+            results = cursor.fetchall()
+        return {style: f"{value:01.2f}" for style, value in results}
+
     def save_orders(self, orders: Iterable[Order]) -> None:
         """Save multiple orders to the table."""
         sql = """\
