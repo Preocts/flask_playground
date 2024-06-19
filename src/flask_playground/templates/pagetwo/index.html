@@ -1,8 +1,59 @@
 {% extends "_shared_base.html" %}
-{% block title %}Page Two Contains nothing{% endblock %}
+{% block title %}Profits thick with grease{% endblock %}
 {% block content %}
 <div class="pageContent">
-  <p>You find yourself in a dark room. The whispers of {{ count }} pizzas bubble in the shadows.</p>
+  <p>You find yourself in a dark room. The whispers of pizza bubble in the shadows.</p>
   <a href="/">Return</a>
+  <hr>
+  <div class="r4"></div>
+  <div class="stat-card r4">
+    <div class="stat-card-header">
+      <p>Total pizzas sold</p>
+    </div>
+    <div class="stat-card-body">
+      {% if stats and stats.total_orders %}
+        <p>{{ stats.total_orders }}</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="r4"></div>
+
+  <div class="stat-card r4">
+    <div class="stat-card-header">
+      <p>&#37; by Style</p>
+    </div>
+    <div class="stat-card-body">
+      {% if stats and stats.by_style %}
+        {% for style, value in stats.by_style.items() %}
+          <p>{{ style }} - {{ value }}&#37;</p>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-card r4">
+    <div class="stat-card-header">
+      <p>&#37; by Size</p>
+    </div>
+    <div class="stat-card-body">
+      {% if stats and stats.by_size %}
+        {% for size, value in stats.by_size.items() %}
+          <p>{{ size }} - {{ value }}&#37;</p>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-card r4">
+    <div class="stat-card-header">
+      <p>&#37; by Name</p>
+    </div>
+    <div class="stat-card-body">
+      {% if stats and stats.by_name %}
+        {% for name, value in stats.by_name.items() %}
+          <p>{{ name }} - {{ value }}&#37;</p>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+
 </div>
 {% endblock %}
