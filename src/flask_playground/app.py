@@ -195,9 +195,9 @@ def pagetwo() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
     stats = {
         "total_orders": store.get_sales_count(),
-        "by_style": store.get_percent_by_style(),
-        "by_name": store.get_percent_by_name(),
-        "by_size": store.get_percent_by_size(),
+        "by_style": store.get_percent_by_column("style"),
+        "by_name": store.get_percent_by_column("name"),
+        "by_size": store.get_percent_by_column("size"),
     }
 
     return flask.make_response(
