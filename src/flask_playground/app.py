@@ -197,6 +197,7 @@ def pagetwo() -> flask.Response:
         "total_orders": store.get_sales_count(),
         "by_style": store.get_percent_by_style(),
         "by_name": store.get_percent_by_name(),
+        "by_size": store.get_percent_by_size(),
     }
 
     return flask.make_response(
