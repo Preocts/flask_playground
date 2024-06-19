@@ -7,6 +7,7 @@ from contextlib import closing
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from threading import Lock
+from typing import Literal
 
 _STORE_FILENAME = "pizza.sqlite3"
 _SALES_CSV = "pizza.csv"
@@ -117,47 +118,35 @@ class PizzaStore:
 
         return [Order(*result) for result in results]
 
-    def get_percent_by_style(self) -> dict[str, str]:
-        """Return style:value of all styles and the percentage of their population."""
-        sql = """\
-            SELECT
-                style,
-                (count(*) * 1.0) / ((SELECT COUNT(*) from sales) * 1.0) * 100
-            FROM sales
-            GROUP BY style;
+    def get_percent_by_column(
+        self,
+        column: Literal["name", "size", "style"],
+    ) -> dict[str, str]:
         """
-        with closing(self.connection.cursor()) as cursor:
-            cursor.execute(sql)
-            results = cursor.fetchall()
-        return {style: f"{value:01.2f}" for style, value in results}
+        Return column:value of all styles and the percentage of their population.
 
-    def get_percent_by_name(self) -> dict[str, str]:
-        """Return name:value of all styles and the percentage of their population."""
-        sql = """\
-            SELECT
-                name,
-                (count(*) * 1.0) / ((SELECT COUNT(*) from sales) * 1.0) * 100
-            FROM sales
-            GROUP BY name;
-        """
-        with closing(self.connection.cursor()) as cursor:
-            cursor.execute(sql)
-            results = cursor.fetchall()
-        return {style: f"{value:01.2f}" for style, value in results}
+        Args:
+            column: Select a valid column to query
 
-    def get_percent_by_size(self) -> dict[str, str]:
-        """Return size:value of all styles and the percentage of their population."""
-        sql = """\
+        Raises:
+            ValueError: When an invalid column is provided.
+        """
+        valid = {"name", "size", "style"}
+        if column not in valid:
+            raise ValueError(f"{column} is not a valid choice.")
+
+        sql = f"""\
             SELECT
-                size,
+                {column},
                 (count(*) * 1.0) / ((SELECT COUNT(*) from sales) * 1.0) * 100
             FROM sales
-            GROUP BY size;
+            GROUP BY {column};
         """
+
         with closing(self.connection.cursor()) as cursor:
             cursor.execute(sql)
             results = cursor.fetchall()
-        return {style: f"{value:01.2f}" for style, value in results}
+        return {column: f"{value:01.2f}" for column, value in results}
 
     def save_orders(self, orders: Iterable[Order]) -> None:
         """Save multiple orders to the table."""
