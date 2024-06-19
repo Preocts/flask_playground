@@ -193,11 +193,15 @@ def _place_order() -> flask.Response:
 @check_expired
 def pagetwo() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
+    stats = {
+        "total_orders": store.get_sales_count(),
+        "by_style": store.get_percent_by_style(),
+    }
 
     return flask.make_response(
         flask.render_template(
             "pagetwo/index.html",
-            count=store.get_sales_count(),
+            stats=stats,
         )
     )
 
