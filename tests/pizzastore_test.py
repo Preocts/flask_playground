@@ -106,7 +106,7 @@ def test_get_recent(store: PizzaStore) -> None:
     expected_order = [5, 4, 2, 3, 1]
     store.save_orders(orders)
 
-    results = store.get_recent()
+    results = store.get_recent(row_count=0)
     order = [result.order_id for result in results]
 
     assert order == expected_order
