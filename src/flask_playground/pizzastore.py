@@ -95,7 +95,12 @@ class PizzaStore:
             return cursor.fetchone()[0]
 
     def get_recent(self, row_count: int = 10) -> list[Order]:
-        """Return the most recent Orders from the table."""
+        """
+        Return the most recent Orders from the table.
+
+        Args:
+            row_count: Number of rows to return. If 0, all rows are returned.
+        """
         sql = """\
             SELECT
                 date,
@@ -113,7 +118,11 @@ class PizzaStore:
             LIMIT(?);
         """
         with closing(self.connection.cursor()) as cursor:
-            cursor.execute(sql, [row_count])
+            if row_count:
+                cursor.execute(sql, [row_count])
+            else:
+                cursor.execute(sql.replace("LIMIT(?)", ""))
+
             results = cursor.fetchall()
 
         return [Order(*result) for result in results]
