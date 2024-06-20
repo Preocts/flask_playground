@@ -23,6 +23,9 @@ class Order:
     price: str
     order_id: int | None = None
 
+    def asdict(self) -> dict[str, str | int]:
+        return dataclasses.asdict(self)
+
 
 class PizzaStore:
     """A datastore for pizza sales using an SQLite3 database."""

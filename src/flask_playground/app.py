@@ -13,10 +13,12 @@ a partial tempalte.
 
 from __future__ import annotations
 
+import csv
 import datetime
 import functools
 import os
 import secrets
+import tempfile
 import time
 from collections.abc import Callable
 from collections.abc import Generator
@@ -206,6 +208,25 @@ def pagetwo() -> flask.Response:
             stats=stats,
         )
     )
+
+
+@app.route("/pagetwo/_csv_report", methods=["GET"])
+@require_login
+@check_expired
+def _csv_report() -> flask.Response:
+    store = svcs.flask.get(PizzaStore)
+    rows = store.get_recent(0)
+
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8") as report_file:
+        csvwriter = csv.DictWriter(report_file, list(rows[0].asdict().keys()))
+        csvwriter.writeheader()
+        csvwriter.writerows((row.asdict() for row in rows))
+
+        return flask.send_file(
+            path_or_file=report_file.name,
+            as_attachment=True,
+            download_name="pizza_orders.csv",
+        )
 
 
 @app.route("/pagethree", methods=["GET"])
