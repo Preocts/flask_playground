@@ -32,7 +32,7 @@ from .pizzastore import Order
 from .pizzastore import PizzaStore
 
 SECRET_KEY_ENV = "FLASK_APP_SECRET_KEY"
-SESSION_LENGTH_SECONDS = 30
+SESSION_LENGTH_SECONDS = 300
 
 
 def _database_factory() -> Generator[PizzaStore, None, None]:
@@ -230,6 +230,8 @@ def _report() -> flask.Response:
             csvwriter.writeheader()
             csvwriter.writerows((row.asdict() for row in rows))
             file_name += ".csv"
+
+        time.sleep(2)
 
         return flask.send_file(
             path_or_file=report_file.name,
