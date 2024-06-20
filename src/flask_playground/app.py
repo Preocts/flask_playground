@@ -16,6 +16,7 @@ from __future__ import annotations
 import csv
 import datetime
 import functools
+import json
 import os
 import secrets
 import tempfile
@@ -210,22 +211,30 @@ def pagetwo() -> flask.Response:
     )
 
 
-@app.route("/pagetwo/_csv_report", methods=["GET"])
+@app.route("/pagetwo/_report", methods=["GET"])
 @require_login
 @check_expired
-def _csv_report() -> flask.Response:
+def _report() -> flask.Response:
+    file_name = "pizza_orders"
+    format_ = flask.request.args.get("format")
     store = svcs.flask.get(PizzaStore)
     rows = store.get_recent(0)
 
     with tempfile.NamedTemporaryFile("w", encoding="utf-8") as report_file:
-        csvwriter = csv.DictWriter(report_file, list(rows[0].asdict().keys()))
-        csvwriter.writeheader()
-        csvwriter.writerows((row.asdict() for row in rows))
+        if format_ == "json":
+            json.dump([row.asdict() for row in rows], report_file)
+            file_name += ".json"
+
+        else:
+            csvwriter = csv.DictWriter(report_file, list(rows[0].asdict().keys()))
+            csvwriter.writeheader()
+            csvwriter.writerows((row.asdict() for row in rows))
+            file_name += ".csv"
 
         return flask.send_file(
             path_or_file=report_file.name,
             as_attachment=True,
-            download_name="pizza_orders.csv",
+            download_name=file_name,
         )
 
 
