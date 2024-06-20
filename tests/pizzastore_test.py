@@ -152,7 +152,6 @@ def test_get_percent_by_column_checks_column_name(store: PizzaStore) -> None:
 
 
 def _writer(
-    thread: int,
     rows_to_write: int,
     flag: threading.Event,
     store_file: str,
@@ -174,8 +173,8 @@ def test_writing_lock_on_database(store: PizzaStore) -> None:
     threads = []
     start_flag = threading.Event()
 
-    for thread_number in range(number_of_threads):
-        args = (thread_number, rows_to_write, start_flag, store.db_file)
+    for _ in range(number_of_threads):
+        args = (rows_to_write, start_flag, store.db_file)
         thread = threading.Thread(target=_writer, args=args)
         threads.append(thread)
         thread.start()
