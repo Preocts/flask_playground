@@ -128,6 +128,29 @@ def test_get_recent_limits(store: PizzaStore) -> None:
     assert len(results) == 1
 
 
+@pytest.mark.parametrize("column", ["name", "size", "style"])
+def test_get_percent_by_column(column: str, store: PizzaStore) -> None:
+    store.connect()
+    orders = [
+        Order("2024/01/02", "12:00:00", "mock1", "mock1", "mock1", "mock"),
+        Order("2024/01/02", "00:00:00", "mock1", "mock1", "mock1", "mock"),
+        Order("2024/01/03", "00:00:00", "mock2", "mock2", "mock2", "mock"),
+        Order("2024/01/04", "00:00:00", "mock2", "mock2", "mock2", "mock"),
+    ]
+    store.save_orders(orders)
+
+    results = store.get_percent_by_column(column)  # type: ignore
+
+    assert len(results) == 2
+    assert results["mock1"] == "50.00"
+    assert results["mock2"] == "50.00"
+
+
+def test_get_percent_by_column_checks_column_name(store: PizzaStore) -> None:
+    with pytest.raises(ValueError):
+        store.get_percent_by_column("Not Allowed")  # type: ignore
+
+
 def _writer(
     thread: int,
     rows_to_write: int,
