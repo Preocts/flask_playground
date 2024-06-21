@@ -16,10 +16,9 @@ from __future__ import annotations
 import csv
 import datetime
 import functools
-import json
 import os
+import pathlib
 import secrets
-import tempfile
 import time
 from collections.abc import Callable
 from collections.abc import Generator
@@ -31,6 +30,7 @@ import svcs
 from .pizzastore import Order
 from .pizzastore import PizzaStore
 
+TEMP_FILE_DIRECTORY = "temp_files"
 SECRET_KEY_ENV = "FLASK_APP_SECRET_KEY"
 SESSION_LENGTH_SECONDS = 300
 
@@ -56,6 +56,8 @@ def construct_app() -> flask.Flask:
         ping=store.health_check,
         on_registry_close=store.disconnect,
     )
+
+    (pathlib.Path(app.root_path) / TEMP_FILE_DIRECTORY).mkdir(exist_ok=True)
 
     return app
 
@@ -215,29 +217,36 @@ def pagetwo() -> flask.Response:
 @require_login
 @check_expired
 def _report() -> flask.Response:
-    file_name = "pizza_orders"
-    format_ = flask.request.args.get("format")
     store = svcs.flask.get(PizzaStore)
     rows = store.get_recent(0)
 
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8") as report_file:
-        if format_ == "json":
-            json.dump([row.asdict() for row in rows], report_file)
-            file_name += ".json"
+    timestamp = time.strftime("%Y.%m.%d-%H.%M")
+    file_path = pathlib.Path(app.root_path) / TEMP_FILE_DIRECTORY
+    file_name = file_path / f"{timestamp}_pizza_orders.csv"
 
-        else:
+    if not file_name.exists():
+        with open(file_name, "w", encoding="utf-8") as report_file:
             csvwriter = csv.DictWriter(report_file, list(rows[0].asdict().keys()))
             csvwriter.writeheader()
             csvwriter.writerows((row.asdict() for row in rows))
-            file_name += ".csv"
 
-        time.sleep(2)
+    download_url = flask.url_for("_download", filename=file_name.name)
 
-        return flask.send_file(
-            path_or_file=report_file.name,
-            as_attachment=True,
-            download_name=file_name,
+    return flask.make_response(
+        flask.render_template(
+            template_name_or_list="pagetwo/partial_download_link.html",
+            url=download_url,
+            filename=file_name.name,
         )
+    )
+
+
+@app.route("/pagetwo/_download/<string:filename>")
+@require_login
+@check_expired
+def _download(filename: str) -> flask.Response:
+    print(f"{app.root_path=}")
+    return flask.send_from_directory(TEMP_FILE_DIRECTORY, filename, as_attachment=True)
 
 
 @app.route("/pagethree", methods=["GET"])
