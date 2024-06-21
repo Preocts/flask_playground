@@ -1,3 +1,3 @@
-<div class="report-download">
-  <a href="{{ url }}">Click to download report: {{ filename }}</a>
+<div class="report-download" hx-get"/healthcheck" hx-swap="delete" hx-trigger="click">
+  <a href="{{ url }}" onclick="hide_parent_div(this)">Click to download report: {{ filename }}</a>
 </div>
