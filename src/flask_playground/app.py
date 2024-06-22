@@ -13,12 +13,10 @@ a partial tempalte.
 
 from __future__ import annotations
 
-import csv
 import datetime
 import os
 import pathlib
 import secrets
-import time
 from collections.abc import Generator
 from typing import Any
 
@@ -32,6 +30,7 @@ from ._decorators import require_login
 from .auth.auth import auth_bp
 from .pizzastore import Order
 from .pizzastore import PizzaStore
+from .reports.reports import reports_bp
 
 
 def _database_factory() -> Generator[PizzaStore, None, None]:
@@ -45,6 +44,7 @@ def construct_app() -> flask.Flask:
     """Build an app with all the things."""
     app = flask.Flask(__name__)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(reports_bp)
 
     app.secret_key = os.getenv(SECRET_KEY_ENV, secrets.token_hex(32))
 
@@ -58,7 +58,9 @@ def construct_app() -> flask.Flask:
         on_registry_close=store.disconnect,
     )
 
-    (pathlib.Path(app.root_path) / TEMP_FILE_DIRECTORY).mkdir(exist_ok=True)
+    temp_path = pathlib.Path(app.root_path) / TEMP_FILE_DIRECTORY
+    temp_path.mkdir(parents=True, exist_ok=True)
+    os.environ["TEMP_FILE_DIRECTORY"] = str(temp_path)
 
     return app
 
@@ -138,62 +140,6 @@ def _place_order() -> flask.Response:
     resp.headers["HX-Trigger"] = "order-placed-event"
 
     return resp
-
-
-@app.route("/pagetwo", methods=["GET"])
-@require_login
-@check_expired
-def pagetwo() -> flask.Response:
-    store = svcs.flask.get(PizzaStore)
-    stats = {
-        "total_orders": store.get_sales_count(),
-        "by_style": store.get_percent_by_column("style"),
-        "by_name": store.get_percent_by_column("name"),
-        "by_size": store.get_percent_by_column("size"),
-    }
-
-    return flask.make_response(
-        flask.render_template(
-            "pagetwo/index.html",
-            stats=stats,
-        )
-    )
-
-
-@app.route("/pagetwo/_report", methods=["GET"])
-@require_login
-@check_expired
-def _report() -> flask.Response:
-    store = svcs.flask.get(PizzaStore)
-    rows = store.get_recent(0)
-
-    timestamp = time.strftime("%Y.%m.%d-%H.%M")
-    file_path = pathlib.Path(app.root_path) / TEMP_FILE_DIRECTORY
-    file_name = file_path / f"{timestamp}_pizza_orders.csv"
-
-    if not file_name.exists():
-        with open(file_name, "w", encoding="utf-8") as report_file:
-            csvwriter = csv.DictWriter(report_file, list(rows[0].asdict().keys()))
-            csvwriter.writeheader()
-            csvwriter.writerows((row.asdict() for row in rows))
-
-    download_url = flask.url_for("_download", filename=file_name.name)
-
-    return flask.make_response(
-        flask.render_template(
-            template_name_or_list="pagetwo/partial_download_link.html",
-            url=download_url,
-            filename=file_name.name,
-        )
-    )
-
-
-@app.route("/pagetwo/_download/<string:filename>")
-@require_login
-@check_expired
-def _download(filename: str) -> flask.Response:
-    print(f"{app.root_path=}")
-    return flask.send_from_directory(TEMP_FILE_DIRECTORY, filename, as_attachment=True)
 
 
 @app.route("/pagethree", methods=["GET"])
