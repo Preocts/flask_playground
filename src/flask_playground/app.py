@@ -29,6 +29,7 @@ from ._constants import SECRET_KEY_ENV
 from ._constants import TEMP_FILE_DIRECTORY
 from ._decorators import check_expired
 from ._decorators import require_login
+from .auth.auth import auth_bp
 from .pizzastore import Order
 from .pizzastore import PizzaStore
 
@@ -43,6 +44,8 @@ def _database_factory() -> Generator[PizzaStore, None, None]:
 def construct_app() -> flask.Flask:
     """Build an app with all the things."""
     app = flask.Flask(__name__)
+    app.register_blueprint(auth_bp)
+
     app.secret_key = os.getenv(SECRET_KEY_ENV, secrets.token_hex(32))
 
     store = PizzaStore()
@@ -198,38 +201,6 @@ def _download(filename: str) -> flask.Response:
 @check_expired
 def pagethree() -> flask.Response:
     raise ValueError("The egg has gone bad.")
-
-
-@app.route("/login", methods=["GET"])
-def login() -> flask.Response:
-    if "usersession" not in flask.session:
-        return flask.make_response(flask.render_template("auth/login.html"))
-
-    return_route = flask.session.pop("return_url", default=flask.url_for("root"))
-
-    return flask.make_response(flask.redirect(return_route))
-
-
-@app.route("/login", methods=["POST"])
-def login_postback() -> flask.Response:
-    flask.session["usersession"] = {
-        "username": flask.request.form["username"],
-        "granted_at": int(time.time()),
-    }
-
-    return_route = flask.session.pop("return_url", default=flask.url_for("root"))
-
-    return flask.make_response(flask.redirect(return_route))
-
-
-@app.route("/logout", methods=["GET"])
-def logout() -> flask.Response:
-    flask.session.pop("usersession", default=None)
-
-    if "return_url" in flask.session:
-        return flask.make_response(flask.redirect(flask.url_for("login")))
-
-    return flask.make_response(flask.render_template("auth/logout.html"))
 
 
 if __name__ == "__main__":
