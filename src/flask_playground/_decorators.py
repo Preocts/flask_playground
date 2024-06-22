@@ -24,8 +24,8 @@ def require_login(func: Callable[..., flask.Response]) -> Callable[..., flask.Re
 
             # Return both a flask redirect and an htmx redirect header to cover both
             # cases of js users and js avoiders.
-            resp = flask.make_response(flask.redirect(flask.url_for("login")))
-            resp.headers["HX-Redirect"] = flask.url_for("login")
+            resp = flask.make_response(flask.redirect(flask.url_for("auth_bp.login")))
+            resp.headers["HX-Redirect"] = flask.url_for("auth_bp.login")
             return resp
 
         return func(*args, **kwargs)
@@ -54,8 +54,10 @@ def check_expired(func: Callable[..., flask.Response]) -> Callable[..., flask.Re
 
             # Return both a flask redirect and an htmx redirect header to cover both
             # cases of js users and js avoiders.
-            resp = flask.make_response(flask.redirect(flask.url_for("logout"), code))
-            resp.headers["HX-Redirect"] = flask.url_for("logout")
+            resp = flask.make_response(
+                flask.redirect(flask.url_for("auth_bp.logout"), code)
+            )
+            resp.headers["HX-Redirect"] = flask.url_for("auth_bp.logout")
             resp.headers["HX-Refresh"] = "true"
             return resp
 
