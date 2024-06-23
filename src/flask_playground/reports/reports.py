@@ -49,7 +49,7 @@ def _report() -> flask.Response:
     rows = store.get_recent(0)
 
     timestamp = time.strftime("%Y.%m.%d-%H.%M")
-    temp_path = os.getenv("TEMP_FILE_DIRECTORY", "")
+    temp_path = os.getenv("APP_DOWNLOAD_DIRECTORY", "")
     file_path = pathlib.Path(reports_bp.root_path) / temp_path
     file_name = file_path / f"{timestamp}_pizza_orders.csv"
     print(file_name)
@@ -75,5 +75,8 @@ def _report() -> flask.Response:
 @require_login
 @check_expired
 def _download(filename: str) -> flask.Response:
-    temp_path = os.getenv("TEMP_FILE_DIRECTORY", "")
-    return flask.send_from_directory(temp_path, filename, as_attachment=True)
+    return flask.send_from_directory(
+        directory=os.getenv("APP_DOWNLOAD_DIRECTORY", ""),
+        path=filename,
+        as_attachment=True,
+    )

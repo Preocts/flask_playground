@@ -23,8 +23,9 @@ from typing import Any
 import flask
 import svcs
 
+from ._constants import DOWNLOAD_DIRECTORY
 from ._constants import SECRET_KEY_ENV
-from ._constants import TEMP_FILE_DIRECTORY
+from ._constants import USE_APP_ROOT
 from ._decorators import check_expired
 from ._decorators import require_login
 from .auth.auth import auth_bp
@@ -58,9 +59,15 @@ def construct_app() -> flask.Flask:
         on_registry_close=store.disconnect,
     )
 
-    temp_path = pathlib.Path(app.root_path) / TEMP_FILE_DIRECTORY
-    temp_path.mkdir(parents=True, exist_ok=True)
-    os.environ["TEMP_FILE_DIRECTORY"] = str(temp_path)
+    # Ensure the download directory exists
+    # Inject the resolved path to the environment
+    if USE_APP_ROOT:
+        download_dir = pathlib.Path(__file__).parent / DOWNLOAD_DIRECTORY
+    else:
+        download_dir = pathlib.Path().cwd() / DOWNLOAD_DIRECTORY
+
+    download_dir.mkdir(parents=True, exist_ok=True)
+    os.environ["APP_DOWNLOAD_DIRECTORY"] = str(download_dir)
 
     return app
 
