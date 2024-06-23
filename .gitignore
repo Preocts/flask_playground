@@ -1,3 +1,4 @@
+download_files/
 temp_*
 .env
 venv/
