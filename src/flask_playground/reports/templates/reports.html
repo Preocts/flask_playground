@@ -21,7 +21,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="/static/js/interactive.js"></script>
+<script src="{{ url_for('.static', filename='interactive.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -31,7 +31,7 @@
   <hr>
   <div>
     <button type=button  hx-get="_report" hx-swap="afterend" hx-indicator="#csv-waiting" hx-trigger="click" hx-disabled-elt="this">Download Table as CSV</button>
-    <img id="csv-waiting" class="htmx-indicator" src="static/images/three-dots.svg">
+    <img id="csv-waiting" class="htmx-indicator" src="{{ url_for('.static', filename='three-dots.svg') }}">
   </div>
   <hr>
   <div class="r4"></div>
