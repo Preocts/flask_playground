@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import datetime
 import os
-import pathlib
 import secrets
 from collections.abc import Generator
 from typing import Any
@@ -25,10 +24,10 @@ import svcs
 
 from ._constants import DOWNLOAD_DIRECTORY
 from ._constants import SECRET_KEY_ENV
-from ._constants import USE_APP_ROOT
 from ._decorators import check_expired
 from ._decorators import require_login
 from .auth.auth import auth_bp
+from .file_store import FileStore
 from .pizzastore import Order
 from .pizzastore import PizzaStore
 from .reports.reports import reports_bp
@@ -41,6 +40,14 @@ def _database_factory() -> Generator[PizzaStore, None, None]:
     store.disconnect()
 
 
+def _filestore_factory() -> Generator[FileStore, None, None]:
+    """Generate a FileStore ojbect for svcs."""
+    store = FileStore(DOWNLOAD_DIRECTORY)
+    store.setup()
+    yield store
+    store.teardown()
+
+
 def construct_app() -> flask.Flask:
     """Build an app with all the things."""
     app = flask.Flask(__name__)
@@ -49,25 +56,19 @@ def construct_app() -> flask.Flask:
 
     app.secret_key = os.getenv(SECRET_KEY_ENV, secrets.token_hex(32))
 
-    store = PizzaStore()
     svcs.flask.init_app(app)
     svcs.flask.register_factory(
         app=app,
         svc_type=PizzaStore,
         factory=_database_factory,
-        ping=store.health_check,
-        on_registry_close=store.disconnect,
+        ping=lambda svc: svc.health_check(),
     )
-
-    # Ensure the download directory exists
-    # Inject the resolved path to the environment
-    if USE_APP_ROOT:
-        download_dir = pathlib.Path(__file__).parent / DOWNLOAD_DIRECTORY
-    else:
-        download_dir = pathlib.Path().cwd() / DOWNLOAD_DIRECTORY
-
-    download_dir.mkdir(parents=True, exist_ok=True)
-    os.environ["APP_DOWNLOAD_DIRECTORY"] = str(download_dir)
+    svcs.flask.register_factory(
+        app=app,
+        svc_type=FileStore,
+        factory=_filestore_factory,
+        ping=lambda svc: svc.health_check(),
+    )
 
     return app
 
