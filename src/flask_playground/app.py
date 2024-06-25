@@ -36,7 +36,9 @@ from .reports.reports import reports_bp
 def _database_factory() -> Generator[PizzaStore, None, None]:
     """Generate a PizzaStore object for svcs."""
     store = PizzaStore()
-    yield store.connect()
+    store.connect()
+    store.build_table()
+    yield store
     store.disconnect()
 
 
