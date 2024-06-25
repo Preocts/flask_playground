@@ -69,7 +69,7 @@ class PizzaStore:
         except Exception as err:
             raise ValueError("Health check failed") from err
 
-    def _build_table(self) -> None:
+    def build_table(self) -> None:
         """Build the table if needed."""
         wal = "PRAGMA journal_mode=WAL;"
         sql = """\
@@ -220,7 +220,7 @@ class PizzaStore:
                 for r in reader
             )
 
-            self._build_table()
+            self.build_table()
             if flush:
                 self.flush_orders()
             self.save_orders(orders)

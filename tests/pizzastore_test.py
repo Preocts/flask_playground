@@ -18,7 +18,7 @@ def store(tmpdir) -> Generator[PizzaStore, None, None]:
     store.connect()
 
     try:
-        store._build_table()
+        store.build_table()
         store.disconnect()
         yield store
 
