@@ -6,7 +6,6 @@ from collections.abc import Iterable
 from contextlib import closing
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
-from threading import Lock
 from typing import Literal
 
 _STORE_FILENAME = "pizza.sqlite3"
@@ -29,8 +28,6 @@ class Order:
 
 class PizzaStore:
     """A datastore for pizza sales using an SQLite3 database."""
-
-    _write_lock = Lock()
 
     def __init__(self, db_file: str = _STORE_FILENAME) -> None:
         """Initialize the datastore object."""
@@ -86,10 +83,9 @@ class PizzaStore:
                 price TEXT
             )"""
 
-        with self._write_lock:
-            self.connection.execute(wal)
-            self.connection.execute(sql)
-            self.connection.commit()
+        self.connection.execute(wal)
+        self.connection.execute(sql)
+        self.connection.commit()
 
     def get_sales_count(self) -> int:
         """Return the count of rows for the sales table."""
@@ -176,9 +172,8 @@ class PizzaStore:
             (?,?,?,?,?,?);
         """
         values = ((o.date, o.time, o.name, o.size, o.style, o.price) for o in orders)
-        with self._write_lock:
-            with closing(self.connection.cursor()) as cursor:
-                cursor.executemany(sql, values)
+        with closing(self.connection.cursor()) as cursor:
+            cursor.executemany(sql, values)
 
             self.connection.commit()
 
@@ -188,9 +183,8 @@ class PizzaStore:
 
     def flush_orders(self) -> None:
         """Flush sales table. USE WITH CAUTION."""
-        with self._write_lock:
-            with closing(self.connection.cursor()) as cursor:
-                cursor.execute("DELETE FROM sales")
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute("DELETE FROM sales")
 
             self.connection.commit()
 
