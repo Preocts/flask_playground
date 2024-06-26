@@ -83,6 +83,8 @@ class FileStore:
 
     def health_check(self) -> None:
         """Ensure file system is accessable."""
+        connection = self._get_index()
+        connection.execute("SELECT 1 from fileindex")
         file = os.path.join(self.file_directory, "healthcheck")
         with open(file, "w", encoding="utf-8") as outfile:
             outfile.write("pass")
