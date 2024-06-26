@@ -108,3 +108,14 @@ def test_open_ignores_indexing_files_already_indexed(store: FileStore) -> None:
     rows = conn.execute("SELECT * FROM fileindex;").fetchall()
 
     assert len(rows) == 1
+
+
+def test_healthcheck_passes(store: FileStore) -> None:
+    store.health_check()
+
+
+def test_healthcheck_fails_with_no_database(store: FileStore) -> None:
+    os.remove(os.path.join(store.file_directory, ".index"))
+
+    with pytest.raises(sqlite3.OperationalError):
+        store.health_check()
