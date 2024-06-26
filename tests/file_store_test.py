@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import shutil
+import sqlite3
+import time
 from collections.abc import Generator
 
 import pytest
@@ -67,8 +69,42 @@ def test_accepts_valid_directories(directory: str) -> None:
     assert store
 
 
-def test_open(store: FileStore) -> None:
+def test_open_places_file_correctly(store: FileStore) -> None:
     with store.open("foobar.txt") as fileout:
         fileout.write("Happy happy")
 
     assert os.path.exists(f"{TEST_DIRECTORY}/foobar.txt")
+
+
+def test_assert_filename_is_unique_in_table(store: FileStore) -> None:
+    conn = sqlite3.Connection(store._index_file)
+    conn.execute("INSERT INTO fileindex (filename, expires_at) VALUES ('f', 0)")
+
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute("INSERT INTO fileindex (filename, expires_at) VALUES ('f', 0)")
+
+
+def test_open_saves_to_index(store: FileStore) -> None:
+    conn = sqlite3.Connection(store._index_file)
+
+    with store.open("check_index"):
+        ...
+
+    rows = conn.execute("SELECT * FROM fileindex;").fetchall()
+
+    assert len(rows) == 1
+    assert rows[0][0] == os.path.join(store.file_directory, "check_index")
+    assert rows[0][1] > int(time.time())
+
+
+def test_open_ignores_indexing_files_already_indexed(store: FileStore) -> None:
+    conn = sqlite3.Connection(store._index_file)
+
+    with store.open("check_index"):
+        ...
+    with store.open("check_index"):
+        ...
+
+    rows = conn.execute("SELECT * FROM fileindex;").fetchall()
+
+    assert len(rows) == 1
