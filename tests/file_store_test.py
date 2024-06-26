@@ -1,11 +1,36 @@
 from __future__ import annotations
 
 import os
+import shutil
+from collections.abc import Generator
 
 import pytest
 
 from flask_playground import file_store
 from flask_playground.file_store import FileStore
+
+TEST_DIRECTORY = "tests/temp_fixture"
+
+
+@pytest.fixture
+def store() -> Generator[FileStore, None, None]:
+    """Create a store with an index in a temp location."""
+    store = FileStore(TEST_DIRECTORY)
+    os.makedirs(TEST_DIRECTORY, exist_ok=True)
+
+    try:
+        store.setup()
+        yield store
+
+    finally:
+        shutil.rmtree(TEST_DIRECTORY)
+
+
+def test_setup_creates_directory_and_index(store: FileStore) -> None:
+
+    assert os.path.exists(f"{TEST_DIRECTORY}")
+    assert os.path.exists(f"{TEST_DIRECTORY}/.index")
+    assert os.path.isfile(f"{TEST_DIRECTORY}/.index")
 
 
 def test_root_defaults_to_cwd() -> None:
@@ -40,3 +65,10 @@ def test_accepts_valid_directories(directory: str) -> None:
     store = FileStore(directory)
 
     assert store
+
+
+def test_open(store: FileStore) -> None:
+    with store.open("foobar.txt") as fileout:
+        fileout.write("Happy happy")
+
+    assert os.path.exists(f"{TEST_DIRECTORY}/foobar.txt")
