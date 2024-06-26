@@ -1,7 +1,14 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import posixpath
+import sqlite3
+from collections.abc import Generator
+from typing import IO
+from typing import Any
+
+_INDEX_FILE = ".index"
 
 
 class FileStore:
@@ -35,6 +42,7 @@ class FileStore:
         self.root = os.path.split(__file__)[0] if use_site_package_root else os.getcwd()
 
         self.file_directory = self._assemble_directory(directory)
+        self._index_file = os.path.join(self.file_directory, _INDEX_FILE)
 
     def _assemble_directory(self, directory: str) -> str:
         """Safely assemble directory to use. Raise if path escapes given root path."""
@@ -50,9 +58,22 @@ class FileStore:
 
         return posixpath.join(self.root, directory)
 
+    @contextlib.contextmanager
+    def open(  # noqa: A003 allow shadow of open keyword
+        self,
+        filename: str,
+        mode: str = "w",
+        encoding: str = "utf-8",
+    ) -> Generator[IO[Any], None, None]:
+        """Open a file handler and track in index. For use with a context manager."""
+        file = os.path.join(self.file_directory, filename)
+        with open(file, mode, encoding=encoding) as filehandler:
+            yield filehandler
+
     def setup(self) -> None:
         """Run all setup required before use."""
         os.makedirs(self.file_directory, exist_ok=True)
+        self._create_index_database()
 
     def teardown(self) -> None:
         """Perform all teardown required after use."""
@@ -63,3 +84,28 @@ class FileStore:
         file = os.path.join(self.file_directory, "healthcheck")
         with open(file, "w", encoding="utf-8") as outfile:
             outfile.write("pass")
+
+    def _get_index(self) -> sqlite3.Connection:
+        """Connect to index database."""
+        return sqlite3.Connection(self._index_file, check_same_thread=False)
+
+    def _create_index_database(self) -> None:
+        """Create an sqlite3 database file for indexing files."""
+        connection = self._get_index()
+
+        try:
+            sql = """\
+                PRAGMA journal_mode=WAL;
+                CREATE TABLE IF NOT EXISTS fileindex
+                (
+                    filename TEXT,
+                    requested_by TEXT,
+                    created_at INTEGER,
+                    expires_at INTEGER
+                );"""
+
+            connection.executescript(sql)
+            connection.commit()
+
+        finally:
+            connection.close()
