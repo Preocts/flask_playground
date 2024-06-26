@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-import os
 import time
 
 import flask
@@ -46,19 +45,17 @@ def pagetwo() -> flask.Response:
 @check_expired
 def _report() -> flask.Response:
     store = svcs.flask.get(PizzaStore)
-    file_directory = svcs.flask.get(FileStore).file_directory
+    file_store = svcs.flask.get(FileStore)
 
     rows = store.get_recent(0)
 
     timestamp = time.strftime("%Y.%m.%d-%H.%M")
     file_name = f"{timestamp}_pizza_orders.csv"
-    full_path = os.path.join(file_directory, file_name)
 
-    if not os.path.exists(full_path):
-        with open(full_path, "w", encoding="utf-8") as report_file:
-            csvwriter = csv.DictWriter(report_file, list(rows[0].asdict().keys()))
-            csvwriter.writeheader()
-            csvwriter.writerows((row.asdict() for row in rows))
+    with file_store.open(file_name) as report_file:
+        csvwriter = csv.DictWriter(report_file, list(rows[0].asdict().keys()))
+        csvwriter.writeheader()
+        csvwriter.writerows((row.asdict() for row in rows))
 
     download_url = flask.url_for("reports_bp._download", filename=file_name)
 
