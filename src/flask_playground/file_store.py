@@ -4,6 +4,7 @@ import contextlib
 import os
 import posixpath
 import sqlite3
+import time
 from collections.abc import Generator
 from typing import IO
 from typing import Any
@@ -68,6 +69,7 @@ class FileStore:
         """Open a file handler and track in index. For use with a context manager."""
         file = os.path.join(self.file_directory, filename)
         with open(file, mode, encoding=encoding) as filehandler:
+            self._save_to_index(file)
             yield filehandler
 
     def setup(self) -> None:
@@ -98,14 +100,26 @@ class FileStore:
                 PRAGMA journal_mode=WAL;
                 CREATE TABLE IF NOT EXISTS fileindex
                 (
-                    filename TEXT,
-                    requested_by TEXT,
-                    created_at INTEGER,
+                    filename TEXT UNIQUE,
                     expires_at INTEGER
                 );"""
 
             connection.executescript(sql)
             connection.commit()
+
+        finally:
+            connection.close()
+
+    def _save_to_index(self, filepath: str) -> None:
+        """Save a filepath to the index."""
+        expires = int(time.time()) + (self._max_file_age_hours * 3600)
+        sql = "INSERT OR IGNORE INTO fileindex (filename, expires_at) VALUES (?, ?);"
+
+        connection = self._get_index()
+        try:
+            with contextlib.closing(connection.cursor()) as cursor:
+                cursor.execute(sql, [filepath, expires])
+                connection.commit()
 
         finally:
             connection.close()
