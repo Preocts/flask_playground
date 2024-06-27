@@ -83,60 +83,52 @@ class FileStore:
 
     def health_check(self) -> None:
         """Ensure file system is accessable."""
-        connection = self._get_index()
-        connection.execute("SELECT 1 from fileindex")
+        with self._get_cursor() as cursor:
+            cursor.execute("SELECT 1 from fileindex")
+
         file = os.path.join(self.file_directory, "healthcheck")
         with open(file, "w", encoding="utf-8") as outfile:
             outfile.write("pass")
 
-    def _get_index(self) -> sqlite3.Connection:
-        """Connect to index database."""
-        return sqlite3.Connection(self._index_file, check_same_thread=False)
+    @contextlib.contextmanager
+    def _get_cursor(self) -> Generator[sqlite3.Cursor, None, None]:
+        """Context manager for a cursor. Commits on exit."""
+        connection = sqlite3.Connection(self._index_file, check_same_thread=False)
+        try:
+            with contextlib.closing(connection.cursor()) as cursor:
+                yield cursor
+
+        finally:
+            connection.commit()
+            connection.close()
 
     def _create_index_database(self) -> None:
         """Create an sqlite3 database file for indexing files."""
-        connection = self._get_index()
+        sql = """\
+            PRAGMA journal_mode=WAL;
+            CREATE TABLE IF NOT EXISTS fileindex
+            (
+                filename TEXT UNIQUE,
+                expires_at INTEGER
+            );"""
 
-        try:
-            sql = """\
-                PRAGMA journal_mode=WAL;
-                CREATE TABLE IF NOT EXISTS fileindex
-                (
-                    filename TEXT UNIQUE,
-                    expires_at INTEGER
-                );"""
-
-            connection.executescript(sql)
-            connection.commit()
-
-        finally:
-            connection.close()
+        with self._get_cursor() as cursor:
+            cursor.executescript(sql)
 
     def _save_to_index(self, filepath: str) -> None:
         """Save a filepath to the index."""
         expires = int(time.time()) + (self._max_file_age_hours * 3600)
         sql = "INSERT OR IGNORE INTO fileindex (filename, expires_at) VALUES (?, ?);"
 
-        connection = self._get_index()
-        try:
-            with contextlib.closing(connection.cursor()) as cursor:
-                cursor.execute(sql, (filepath, expires))
-                connection.commit()
-
-        finally:
-            connection.close()
+        with self._get_cursor() as cursor:
+            cursor.execute(sql, (filepath, expires))
 
     def _get_expired(self) -> list[str]:
         """Return filepaths to be deleted."""
         now = int(time.time())
         sql = "SELECT filename FROM fileindex WHERE expires_at < ?;"
 
-        connection = self._get_index()
-        try:
-            with contextlib.closing(connection.cursor()) as cursor:
-                results = cursor.execute(sql, (now,)).fetchall()
-
-        finally:
-            connection.close()
+        with self._get_cursor() as cursor:
+            results = cursor.execute(sql, (now,)).fetchall()
 
         return [r[0] for r in results]
