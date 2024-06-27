@@ -120,8 +120,23 @@ class FileStore:
         connection = self._get_index()
         try:
             with contextlib.closing(connection.cursor()) as cursor:
-                cursor.execute(sql, [filepath, expires])
+                cursor.execute(sql, (filepath, expires))
                 connection.commit()
 
         finally:
             connection.close()
+
+    def _get_expired(self) -> list[str]:
+        """Return filepaths to be deleted."""
+        now = int(time.time())
+        sql = "SELECT filename FROM fileindex WHERE expires_at < ?;"
+
+        connection = self._get_index()
+        try:
+            with contextlib.closing(connection.cursor()) as cursor:
+                results = cursor.execute(sql, (now,)).fetchall()
+
+        finally:
+            connection.close()
+
+        return [r[0] for r in results]
