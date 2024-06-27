@@ -122,7 +122,7 @@ def test_healthcheck_fails_with_no_database(store: FileStore) -> None:
 
 
 def test_get_expired(store: FileStore) -> None:
-    now = int(time.time()) - 10
+    now = int(time.time())
     conn = sqlite3.Connection(store._index_file)
     sql = "INSERT INTO fileindex (filename, expires_at) VALUES (?, ?)"
     times = [now - 10, now - 9, now - 8, now + 10]
@@ -133,3 +133,21 @@ def test_get_expired(store: FileStore) -> None:
     results = store._get_expired()
 
     assert results == [f"mockfile{now-10}", f"mockfile{now-9}", f"mockfile{now-8}"]
+
+
+def test_delete_from_index(store: FileStore) -> None:
+    now = int(time.time())
+    conn = sqlite3.Connection(store._index_file)
+    sql = "INSERT INTO fileindex (filename, expires_at) VALUES (?, ?)"
+    times = [now - 10, now - 9, now - 8, now + 10]
+    values = [(f"mockfile{t}", t) for t in times]
+    conn.executemany(sql, values)
+    conn.commit()
+
+    store._delete_from_index(
+        filepaths=[f"mockfile{now - 10}", f"mockfile{now - 9}", f"mockfile{now - 8}"],
+    )
+
+    results = conn.execute("SELECT filename FROM fileindex").fetchall()
+
+    assert results[0] == (f"mockfile{now + 10}",)
