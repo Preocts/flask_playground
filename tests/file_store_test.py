@@ -119,3 +119,17 @@ def test_healthcheck_fails_with_no_database(store: FileStore) -> None:
 
     with pytest.raises(sqlite3.OperationalError):
         store.health_check()
+
+
+def test_get_expired(store: FileStore) -> None:
+    now = int(time.time()) - 10
+    conn = sqlite3.Connection(store._index_file)
+    sql = "INSERT INTO fileindex (filename, expires_at) VALUES (?, ?)"
+    times = [now - 10, now - 9, now - 8, now + 10]
+    values = [(f"mockfile{t}", t) for t in times]
+    conn.executemany(sql, values)
+    conn.commit()
+
+    results = store._get_expired()
+
+    assert results == [f"mockfile{now-10}", f"mockfile{now-9}", f"mockfile{now-8}"]
