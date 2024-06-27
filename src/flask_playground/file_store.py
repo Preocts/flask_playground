@@ -132,3 +132,10 @@ class FileStore:
             results = cursor.execute(sql, (now,)).fetchall()
 
         return [r[0] for r in results]
+
+    def _delete_from_index(self, filepaths: list[str]) -> None:
+        """Delete, in batch, rows from the index."""
+        sql = "DELETE FROM fileindex WHERE filename = ?"
+
+        with self._get_cursor() as cursor:
+            cursor.executemany(sql, [(fp,) for fp in filepaths])
