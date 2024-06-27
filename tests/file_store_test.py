@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import random
 import shutil
 import sqlite3
+import threading
 import time
 from collections.abc import Generator
 
@@ -154,3 +156,30 @@ def test_delete_from_index(store: FileStore) -> None:
     results = conn.execute("SELECT filename FROM fileindex").fetchall()
 
     assert results[0] == (f"mockfile{now + 10}",)
+
+
+def _writer(store: FileStore, files_to_write: int, flag: threading.Event) -> None:
+    flag.wait()
+    for _ in range(files_to_write):
+        filename = f"mock{random.randrange(0, 100000)}"
+        with store.open(filename) as outfile:
+            outfile.write("foo")
+
+
+def test_current_file_saves(store: FileStore) -> None:
+    number_of_threads = 50
+    files_to_write = 10
+
+    threads = []
+    start_flag = threading.Event()
+
+    for _ in range(number_of_threads):
+        args = (store, files_to_write, start_flag)
+        thread = threading.Thread(target=_writer, args=args)
+        threads.append(thread)
+        thread.start()
+
+    start_flag.set()
+
+    for thread in threads:
+        thread.join()
