@@ -121,18 +121,21 @@ def test_healthcheck_fails_with_no_database(store: FileStore) -> None:
         store.health_check()
 
 
-def test_get_expired(store: FileStore) -> None:
-    now = int(time.time())
-    conn = sqlite3.Connection(store._index_file)
-    sql = "INSERT INTO fileindex (filename, expires_at) VALUES (?, ?)"
-    times = [now - 10, now - 9, now - 8, now + 10]
-    values = [(f"mockfile{t}", t) for t in times]
-    conn.executemany(sql, values)
-    conn.commit()
+def test_removed_expired_handles_missing_files(store: FileStore) -> None:
+    store._max_file_age_hours = 0
+    with store.open("foo"):
+        ...
+    with store.open("bar"):
+        ...
+    with store.open("baz"):
+        ...
+    os.remove(os.path.join(store.file_directory, "baz"))
 
-    results = store._get_expired()
+    store.removed_expired()
 
-    assert results == [f"mockfile{now-10}", f"mockfile{now-9}", f"mockfile{now-8}"]
+    assert not os.path.exists(os.path.join(store.file_directory, "foo"))
+    assert not os.path.exists(os.path.join(store.file_directory, "bar"))
+    assert not os.path.exists(os.path.join(store.file_directory, "baz"))
 
 
 def test_delete_from_index(store: FileStore) -> None:

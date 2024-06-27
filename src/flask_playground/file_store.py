@@ -21,7 +21,6 @@ class FileStore:
         max_file_age_hours: int = 1,
         *,
         use_site_package_root: bool = False,
-        retain_on_exit: bool = False,
     ) -> None:
         """
         Create a FileStore object to manage local file directory creation and cleanup.
@@ -32,13 +31,11 @@ class FileStore:
 
         Keyword Args:
             use_site_package_root: When true, root is based on the site-packages install
-            retain_on_exit: Do not delete files on exit cleanup call
 
         NOTE: If retain_on_exit is True, max_file_age_hours will still be applied.
         """
         self._max_file_age_hours = max_file_age_hours
         self._use_site_package_root = use_site_package_root
-        self._retain_on_exit = retain_on_exit
 
         self.root = os.path.split(__file__)[0] if use_site_package_root else os.getcwd()
 
@@ -79,7 +76,19 @@ class FileStore:
 
     def teardown(self) -> None:
         """Perform all teardown required after use."""
-        ...
+        self.removed_expired()
+
+    def removed_expired(self) -> None:
+        """Remove (delete) expired files."""
+        to_remove = self._get_expired()
+
+        for filepath in to_remove:
+            try:
+                os.remove(filepath)
+            except FileNotFoundError:
+                ...
+
+        self._delete_from_index(to_remove)
 
     def health_check(self) -> None:
         """Ensure file system is accessable."""
@@ -126,7 +135,7 @@ class FileStore:
     def _get_expired(self) -> list[str]:
         """Return filepaths to be deleted."""
         now = int(time.time())
-        sql = "SELECT filename FROM fileindex WHERE expires_at < ?;"
+        sql = "SELECT filename FROM fileindex WHERE expires_at <= ?;"
 
         with self._get_cursor() as cursor:
             results = cursor.execute(sql, (now,)).fetchall()
