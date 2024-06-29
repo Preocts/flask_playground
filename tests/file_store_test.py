@@ -160,6 +160,14 @@ def test_delete_from_index(store: FileStore) -> None:
     assert results[0] == (f"mockfile{now + 10}",)
 
 
+def test_connection_exception_raised_when_database_not_exists() -> None:
+    shutil.rmtree(TEST_DIRECTORY, ignore_errors=True)
+    store = FileStore(TEST_DIRECTORY)
+
+    with pytest.raises(ConnectionError):
+        store.removed_expired()
+
+
 def _writer(store: FileStore, files_to_write: int, flag: threading.Event) -> None:
     flag.wait()
     for _ in range(files_to_write):

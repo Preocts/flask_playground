@@ -105,7 +105,12 @@ class FileStore:
     @contextlib.contextmanager
     def _get_cursor(self) -> Generator[sqlite3.Cursor, None, None]:
         """Context manager for a cursor. Commits on exit."""
-        connection = sqlite3.Connection(self._index_file, check_same_thread=False)
+        try:
+            connection = sqlite3.Connection(self._index_file, check_same_thread=False)
+
+        except sqlite3.OperationalError as err:
+            raise ConnectionError() from err
+
         try:
             with contextlib.closing(connection.cursor()) as cursor:
                 yield cursor
