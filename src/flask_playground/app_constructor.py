@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import atexit
 import os
 import secrets
+import signal
 import threading
 from collections.abc import Generator
+from typing import Any
 
 import flask
 import svcs
@@ -31,7 +32,7 @@ def _database_factory() -> Generator[PizzaStore, None, None]:
 
 def _filestore_factory() -> Generator[FileStore, None, None]:
     """Generate a FileStore ojbect for svcs."""
-    store = FileStore(DOWNLOAD_DIRECTORY)
+    store = FileStore(DOWNLOAD_DIRECTORY, max_file_age_hours=0)
     store.setup()
     yield store
     store.teardown()
@@ -59,10 +60,12 @@ def construct_app() -> flask.Flask:
         ping=lambda svc: svc.health_check(),
     )
 
+    _start_timers()
+
     return app
 
 
-def start_timers() -> None:
+def _start_timers() -> None:
     """Start any timers for background tasks."""
     if os.getenv("APP_TIMERS_STARTED"):
         return
@@ -70,22 +73,19 @@ def start_timers() -> None:
     timers["files"] = threading.Timer(FILE_CLEAN_RECURRANCE_SECONDS, _file_cleaner)
     timers["files"].start()
 
-    atexit.register(_end_timers)
+    signal.signal(signal.SIGINT, _end_timers)
     os.environ["APP_TIMERS_STARTED"] = "true"
 
 
-def _end_timers() -> None:
+def _end_timers(signal_number: int, _: Any) -> None:
     """Cancel all timers."""
-    print("shutting app down")
-    for name, timer in timers.items():
-        print("Stopping timer:", name)
+    for timer in timers.values():
         timer.cancel()
         timer.join(5.0)
 
 
 def _file_cleaner() -> None:
     """Runs FileStore cleaning on a regular cycle"""
-    print("Cleaning files")
     FileStore(DOWNLOAD_DIRECTORY).removed_expired()
     timers["files"] = threading.Timer(FILE_CLEAN_RECURRANCE_SECONDS, _file_cleaner)
     timers["files"].start()
