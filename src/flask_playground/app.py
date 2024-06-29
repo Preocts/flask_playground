@@ -22,12 +22,10 @@ import svcs
 from ._decorators import check_expired
 from ._decorators import require_login
 from .app_constructor import construct_app
-from .app_constructor import start_timers
 from .pizzastore import Order
 from .pizzastore import PizzaStore
 
 app = construct_app()
-start_timers()
 
 
 @app.errorhandler(404)
