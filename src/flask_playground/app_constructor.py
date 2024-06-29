@@ -86,6 +86,11 @@ def _end_timers(signal_number: int, _: Any) -> None:
 
 def _file_cleaner() -> None:
     """Runs FileStore cleaning on a regular cycle"""
-    FileStore(DOWNLOAD_DIRECTORY).removed_expired()
+    try:
+        FileStore(DOWNLOAD_DIRECTORY).removed_expired()
+
+    except ConnectionError:
+        ...
+
     timers["files"] = threading.Timer(FILE_CLEAN_RECURRANCE_SECONDS, _file_cleaner)
     timers["files"].start()
