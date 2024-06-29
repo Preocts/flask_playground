@@ -65,6 +65,9 @@ class FileStore:
     ) -> Generator[IO[Any], None, None]:
         """Open a file handler and track in index. For use with a context manager."""
         file = os.path.join(self.file_directory, filename)
+        if os.path.exists(file):
+            raise FileExistsError("File already exists.")
+
         with open(file, mode, encoding=encoding) as filehandler:
             self._save_to_index(file)
             yield filehandler
@@ -76,7 +79,7 @@ class FileStore:
 
     def teardown(self) -> None:
         """Perform all teardown required after use."""
-        pass
+        ...
 
     def removed_expired(self) -> None:
         """Remove (delete) expired files."""

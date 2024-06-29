@@ -52,10 +52,14 @@ def _report() -> flask.Response:
     timestamp = time.strftime("%Y.%m.%d-%H.%M")
     file_name = f"{timestamp}_pizza_orders.csv"
 
-    with file_store.open(file_name) as report_file:
-        csvwriter = csv.DictWriter(report_file, list(rows[0].asdict().keys()))
-        csvwriter.writeheader()
-        csvwriter.writerows((row.asdict() for row in rows))
+    try:
+        with file_store.open(file_name) as report_file:
+            csvwriter = csv.DictWriter(report_file, list(rows[0].asdict().keys()))
+            csvwriter.writeheader()
+            csvwriter.writerows((row.asdict() for row in rows))
+
+    except FileExistsError:
+        pass
 
     download_url = flask.url_for("reports_bp._download", filename=file_name)
 

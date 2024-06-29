@@ -99,13 +99,15 @@ def test_open_saves_to_index(store: FileStore) -> None:
     assert rows[0][1] > int(time.time())
 
 
-def test_open_ignores_indexing_files_already_indexed(store: FileStore) -> None:
+def test_open_raises_if_file_already_exists(store: FileStore) -> None:
     conn = sqlite3.Connection(store._index_file)
 
     with store.open("check_index"):
         ...
-    with store.open("check_index"):
-        ...
+
+    with pytest.raises(FileExistsError):
+        with store.open("check_index"):
+            ...
 
     rows = conn.execute("SELECT * FROM fileindex;").fetchall()
 
