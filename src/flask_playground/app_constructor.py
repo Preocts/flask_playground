@@ -60,9 +60,9 @@ def construct_app() -> flask.Flask:
         ping=lambda svc: svc.health_check(),
     )
 
+    THREADS_RUNNING.set()
     threads.append(threading.Thread(target=_file_cleaner))
     threads[-1].start()
-    THREADS_RUNNING.set()
 
     return app
 
@@ -77,10 +77,11 @@ def destruct_app() -> None:
 
 def _file_cleaner() -> None:
     """Runs FileStore cleaning on a regular cycle"""
-    THREADS_RUNNING.wait()
-    tic = int(time.time())
+    next_tic = 0
     while THREADS_RUNNING.is_set():
-        if tic + FILE_CLEAN_RECURRANCE_SECONDS < int(time.time()):
+        if next_tic > int(time.time()):
             continue
+
+        next_tic = int(time.time()) + FILE_CLEAN_RECURRANCE_SECONDS
 
         FileStore(DOWNLOAD_DIRECTORY).removed_expired()
