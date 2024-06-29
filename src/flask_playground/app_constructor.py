@@ -32,7 +32,7 @@ def _database_factory() -> Generator[PizzaStore, None, None]:
 
 def _filestore_factory() -> Generator[FileStore, None, None]:
     """Generate a FileStore ojbect for svcs."""
-    store = FileStore(DOWNLOAD_DIRECTORY, max_file_age_hours=0)
+    store = FileStore(DOWNLOAD_DIRECTORY)
     store.setup()
     yield store
     store.teardown()
