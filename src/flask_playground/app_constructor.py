@@ -2,17 +2,23 @@ from __future__ import annotations
 
 import os
 import secrets
+import threading
+import time
 from collections.abc import Generator
 
 import flask
 import svcs
 
 from ._constants import DOWNLOAD_DIRECTORY
+from ._constants import FILE_CLEAN_RECURRANCE_SECONDS
 from ._constants import SECRET_KEY_ENV
 from .auth.auth import auth_bp
 from .file_store import FileStore
 from .pizzastore import PizzaStore
 from .reports.reports import reports_bp
+
+THREADS_RUNNING = threading.Event()
+threads: list[threading.Thread] = []
 
 
 def _database_factory() -> Generator[PizzaStore, None, None]:
@@ -54,4 +60,27 @@ def construct_app() -> flask.Flask:
         ping=lambda svc: svc.health_check(),
     )
 
+    threads.append(threading.Thread(target=_file_cleaner))
+    threads[-1].start()
+    THREADS_RUNNING.set()
+
     return app
+
+
+def destruct_app() -> None:
+    """Cleanup the app."""
+    print("shutting app down")
+    THREADS_RUNNING.clear()
+    for thread in threads:
+        thread.join()
+
+
+def _file_cleaner() -> None:
+    """Runs FileStore cleaning on a regular cycle"""
+    THREADS_RUNNING.wait()
+    tic = int(time.time())
+    while THREADS_RUNNING.is_set():
+        if tic + FILE_CLEAN_RECURRANCE_SECONDS < int(time.time()):
+            continue
+
+        FileStore(DOWNLOAD_DIRECTORY).removed_expired()

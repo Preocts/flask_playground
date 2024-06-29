@@ -13,6 +13,7 @@ a partial tempalte.
 
 from __future__ import annotations
 
+import atexit
 import datetime
 from typing import Any
 
@@ -22,10 +23,12 @@ import svcs
 from ._decorators import check_expired
 from ._decorators import require_login
 from .app_constructor import construct_app
+from .app_constructor import destruct_app
 from .pizzastore import Order
 from .pizzastore import PizzaStore
 
 app = construct_app()
+atexit.register(destruct_app)
 
 
 @app.errorhandler(404)
