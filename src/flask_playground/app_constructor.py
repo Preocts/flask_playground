@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import atexit
 import os
 import secrets
 import threading
-import time
 from collections.abc import Generator
 
 import flask
@@ -17,8 +17,7 @@ from .file_store import FileStore
 from .pizzastore import PizzaStore
 from .reports.reports import reports_bp
 
-THREADS_RUNNING = threading.Event()
-threads: list[threading.Thread] = []
+timers: dict[str, threading.Timer] = {}
 
 
 def _database_factory() -> Generator[PizzaStore, None, None]:
@@ -60,28 +59,33 @@ def construct_app() -> flask.Flask:
         ping=lambda svc: svc.health_check(),
     )
 
-    THREADS_RUNNING.set()
-    threads.append(threading.Thread(target=_file_cleaner))
-    threads[-1].start()
-
     return app
 
 
-def destruct_app() -> None:
-    """Cleanup the app."""
+def start_timers() -> None:
+    """Start any timers for background tasks."""
+    if os.getenv("APP_TIMERS_STARTED"):
+        return
+
+    timers["files"] = threading.Timer(FILE_CLEAN_RECURRANCE_SECONDS, _file_cleaner)
+    timers["files"].start()
+
+    atexit.register(_end_timers)
+    os.environ["APP_TIMERS_STARTED"] = "true"
+
+
+def _end_timers() -> None:
+    """Cancel all timers."""
     print("shutting app down")
-    THREADS_RUNNING.clear()
-    for thread in threads:
-        thread.join()
+    for name, timer in timers.items():
+        print("Stopping timer:", name)
+        timer.cancel()
+        timer.join(5.0)
 
 
 def _file_cleaner() -> None:
     """Runs FileStore cleaning on a regular cycle"""
-    next_tic = 0
-    while THREADS_RUNNING.is_set():
-        if next_tic > int(time.time()):
-            continue
-
-        next_tic = int(time.time()) + FILE_CLEAN_RECURRANCE_SECONDS
-
-        FileStore(DOWNLOAD_DIRECTORY).removed_expired()
+    print("Cleaning files")
+    FileStore(DOWNLOAD_DIRECTORY).removed_expired()
+    timers["files"] = threading.Timer(FILE_CLEAN_RECURRANCE_SECONDS, _file_cleaner)
+    timers["files"].start()
