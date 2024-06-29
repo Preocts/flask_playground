@@ -76,7 +76,7 @@ class FileStore:
 
     def teardown(self) -> None:
         """Perform all teardown required after use."""
-        self.removed_expired()
+        pass
 
     def removed_expired(self) -> None:
         """Remove (delete) expired files."""
